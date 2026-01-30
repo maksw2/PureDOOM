@@ -13,7 +13,9 @@
 
 #if defined(DOOM_EXAMPLE_USE_SINGLE_HEADER) // Use the PureDOOM.h single header
 #define DOOM_IMPLEMENTATION
-#include "../../PureDOOM.h"
+#define I_NET_ENABLED
+#define DOOM_WIN32
+#include "PureDOOM.h"
 #else
 #include "DOOM/DOOM.h"
 #endif
@@ -184,7 +186,6 @@ Uint32 tick_midi(Uint32 interval, void *param)
 #endif
 }
 
-
 int main(int argc, char** argv)
 {
     // Init SDL
@@ -257,7 +258,7 @@ int main(int argc, char** argv)
     midi_timer = SDL_AddTimer(0, tick_midi, 0);
 
     // Initialize doom
-    doom_init(argc, argv, DOOM_FLAG_MENU_DARKEN_BG);
+    doom_init(argc, (const char**)argv, DOOM_FLAG_MENU_DARKEN_BG);
 
     //-----------------------------------------------------------------------
     

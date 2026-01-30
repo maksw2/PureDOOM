@@ -50,7 +50,7 @@
 #define DOOM_FLAG_MENU_DARKEN_BG 8
 
 
-#if __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -186,7 +186,7 @@ void doom_set_exit(doom_exit_fn exit_fn);
 void doom_set_getenv(doom_getenv_fn getenv_fn);
 
 // Initializes DOOM and start things up. Call only call one
-void doom_init(int argc, char** argv, int flags);
+void doom_init(int argc, const char** argv, int flags);
 
 // Call this every frame
 void doom_update(); // This will update at 35 FPS
@@ -625,7 +625,7 @@ void doom_mouse_move(int delta_x, int delta_y);
 "final confrontation with that terrible\n"\
 "beast from hell.  but you stepped forward\n"\
 "and brought forth eternal damnation and\n"\
-"suffering upon the horde as a true hero\n"\
+"suffering upon the horde as a doom_true hero\n"\
 "would in the face of something so evil.\n"\
 "\n"\
 "besides, someone was gonna pay for what\n"\
@@ -1251,18 +1251,15 @@ extern weaponinfo_t weaponinfo[NUMWEAPONS];
 #define __DOOMTYPE__
 
 
-// Fixed to use builtin bool type with C++.
-#ifdef __cplusplus
-typedef bool doom_boolean;
-#else
-#if !defined(false) && !defined(true)
+#if !defined(__cplusplus) && !defined(doom_false) && !defined(doom_true)
 typedef enum
 {
-    false, true
+    doom_false, doom_true
 } doom_boolean;
 #else
 typedef int doom_boolean;
-#endif
+#define doom_true 1
+#define doom_false 0
 #endif
 
 
@@ -1347,7 +1344,7 @@ typedef enum
     BT_SPECIALMASK = 3,
 
     // Flag, weapon change pending.
-    // If true, the next 3 bits hold weapon num.
+    // If doom_true, the next 3 bits hold weapon num.
     BT_CHANGE = 4,
     // The 3bit weapon mask and shift, convenience.
     BT_WEAPONMASK = (8 + 16 + 32),
@@ -4398,7 +4395,7 @@ typedef struct player_s
     int ammo[NUMAMMO];
     int maxammo[NUMAMMO];
 
-    // True if button down last tic.
+    // doom_true if button down last tic.
     int attackdown;
     int usedown;
 
@@ -4438,7 +4435,7 @@ typedef struct player_s
     // Overlay view sprites (gun, etc).
     pspdef_t psprites[NUMPSPRITES];
 
-    // True if secret level has been done.
+    // doom_true if secret level has been done.
     doom_boolean didsecret;
 } player_t;
 
@@ -4465,7 +4462,7 @@ typedef struct
 {
     int epsd;        // episode # (0-2)
 
-    // if true, splash the secret level
+    // if doom_true, splash the secret level
     doom_boolean didsecret;
 
     // previous and next levels, origin 0
@@ -4658,10 +4655,10 @@ extern int gamemap;
 // Nightmare mode flag, single player.
 extern doom_boolean respawnmonsters;
 
-// Netgame? Only true if >1 player.
+// Netgame? Only doom_true if >1 player.
 extern doom_boolean netgame;
 
-// Flag: true only if started as net deathmatch.
+// Flag: doom_true only if started as net deathmatch.
 // An enum might handle altdeath/cooperative better.
 extern doom_boolean deathmatch;
 
@@ -4797,7 +4794,7 @@ extern int maxammo[NUMAMMO];
 extern char basedefault[1024];
 extern void* debugfile;
 
-// if true, load all graphics at level load
+// if doom_true, load all graphics at level load
 extern doom_boolean precache;
 
 // wipegamestate can be set to -1
@@ -5185,7 +5182,7 @@ typedef post_t column_t;
 //
 
 // This could be wider for >8 bit display.
-// Indeed, true color support is posibble
+// Indeed, doom_true color support is posibble
 //  precalculating 24bpp lightmap/colormap LUT.
 //  from darkening PLAYPAL to all black.
 // Could even us emore than 32 levels.
@@ -5294,7 +5291,7 @@ typedef struct vissprite_s
 //
 typedef struct
 {
-    // If false use 0 for any position.
+    // If doom_false use 0 for any position.
     // Note: as eight entries are available,
     //  we might as well insert the same name eight times.
     doom_boolean rotate;
@@ -5922,7 +5919,7 @@ extern int rw_stopx;
 
 extern doom_boolean segtextured;
 
-// false if the back side is the same plane
+// doom_false if the back side is the same plane
 extern doom_boolean markfloor;
 extern doom_boolean markceiling;
 
@@ -6541,7 +6538,7 @@ void P_SetThingPosition(mobj_t* thing);
 // P_MAP
 //
 
-// If "floatok" true, move would be ok
+// If "floatok" doom_true, move would be ok
 // if within "tmfloorz - tmceilingz".
 extern doom_boolean floatok;
 extern fixed_t tmfloorz;
@@ -7069,27 +7066,27 @@ void* doom_open_impl(const char* filename, const char* mode)
 }
 void doom_close_impl(void* handle)
 {
-    fclose(handle);
+    fclose((FILE*)handle);
 }
 int doom_read_impl(void* handle, void *buf, int count)
 {
-    return (int)fread(buf, 1, count, handle);
+    return (int)fread(buf, 1, count, (FILE*)handle);
 }
 int doom_write_impl(void* handle, const void *buf, int count)
 {
-    return (int)fwrite(buf, 1, count, handle);
+    return (int)fwrite(buf, 1, count, (FILE*)handle);
 }
 int doom_seek_impl(void* handle, int offset, doom_seek_t origin)
 {
-    return fseek(handle, offset, origin);
+    return fseek((FILE*)handle, offset, origin);
 }
 int doom_tell_impl(void* handle)
 {
-    return (int)ftell(handle);
+    return (int)ftell((FILE*)handle);
 }
 int doom_eof_impl(void* handle)
 {
-    return feof(handle);
+    return feof((FILE*)handle);
 }
 #else
 void* doom_open_impl(const char* filename, const char* mode)
@@ -7186,7 +7183,7 @@ char* doom_getenv_impl(const char* var) { return 0; }
 
 void doom_memset(void* ptr, int value, int num)
 {
-    unsigned char* p = ptr;
+    unsigned char* p = (unsigned char*)ptr;
     for (int i = 0; i < num; ++i, ++p)
     {
         *p = (unsigned char)value;
@@ -7196,8 +7193,8 @@ void doom_memset(void* ptr, int value, int num)
 
 void* doom_memcpy(void* destination, const void* source, int num)
 {
-    unsigned char* dst = destination;
-    const unsigned char* src = source;
+    unsigned char* dst = (unsigned char*)destination;
+    const unsigned char* src = (const unsigned char*)source;
 
     for (int i = 0; i < num; ++i, ++dst, ++src)
     {
@@ -7527,7 +7524,7 @@ void doom_set_getenv(doom_getenv_fn getenv_fn)
 }
 
 
-void doom_init(int argc, char** argv, int flags)
+void doom_init(int argc, const char** argv, int flags)
 {
     if (!doom_print) doom_print = doom_print_impl;
     if (!doom_malloc) doom_malloc = doom_malloc_impl;
@@ -7543,12 +7540,12 @@ void doom_init(int argc, char** argv, int flags)
     if (!doom_exit) doom_exit = doom_exit_impl;
     if (!doom_getenv) doom_getenv = doom_getenv_impl;
 
-    screen_buffer = doom_malloc(SCREENWIDTH * SCREENHEIGHT);
-    final_screen_buffer = doom_malloc(SCREENWIDTH * SCREENHEIGHT * 4);
+    screen_buffer = (unsigned char*)doom_malloc(SCREENWIDTH * SCREENHEIGHT);
+    final_screen_buffer = (unsigned char*)doom_malloc(SCREENWIDTH * SCREENHEIGHT * 4);
     last_update_time = I_GetTime();
 
     myargc = argc;
-    myargv = argv;
+    myargv = (char**)argv; // unsafe my ass
     doom_flags = flags;
 
     D_DoomMain();
@@ -7973,10 +7970,10 @@ static int followplayer = 1; // specifies whether to follow the player around
 static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
-static doom_boolean stopped = true;
+static doom_boolean stopped = doom_true;
 
 
-doom_boolean automapactive = false;
+doom_boolean automapactive = doom_false;
 
 
 extern doom_boolean viewactive;
@@ -8143,7 +8140,7 @@ void AM_initVariables(void)
     int pnum;
     static event_t st_notify = { ev_keyup, AM_MSGENTERED };
 
-    automapactive = true;
+    automapactive = doom_true;
     fb = screens[0];
 
     f_oldloc.x = DOOM_MAXINT;
@@ -8190,7 +8187,7 @@ void AM_loadPics(void)
     for (i = 0; i < 10; i++)
     {
         doom_concat(doom_strcpy(namebuf, "AMMNUM"), doom_itoa(i, 10));
-        marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
+        marknums[i] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
     }
 }
 
@@ -8241,12 +8238,12 @@ void AM_LevelInit(void)
 //
 void AM_Stop(void)
 {
-    static event_t st_notify = { 0, ev_keyup, AM_MSGEXITED };
+    static event_t st_notify = { (evtype_t)0, ev_keyup, AM_MSGEXITED };
 
     AM_unloadPics();
-    automapactive = false;
+    automapactive = doom_false;
     ST_Responder(&st_notify);
-    stopped = true;
+    stopped = doom_true;
 }
 
 
@@ -8258,7 +8255,7 @@ void AM_Start(void)
     static int lastlevel = -1, lastepisode = -1;
 
     if (!stopped) AM_Stop();
-    stopped = false;
+    stopped = doom_false;
     if (lastlevel != gamemap || lastepisode != gameepisode)
     {
         AM_LevelInit();
@@ -8302,39 +8299,39 @@ doom_boolean AM_Responder(event_t* ev)
     static int bigstate = 0;
     static char buffer[20];
 
-    rc = false;
+    rc = doom_false;
 
     if (!automapactive)
     {
         if (ev->type == ev_keydown && ev->data1 == AM_STARTKEY)
         {
             AM_Start();
-            viewactive = false;
-            rc = true;
+            viewactive = doom_false;
+            rc = doom_true;
         }
     }
 
     else if (ev->type == ev_keydown)
     {
 
-        rc = true;
+        rc = doom_true;
         switch (ev->data1)
         {
             case AM_PANRIGHTKEY: // pan right
                 if (!followplayer) m_paninc.x = FTOM(F_PANINC);
-                else rc = false;
+                else rc = doom_false;
                 break;
             case AM_PANLEFTKEY: // pan left
                 if (!followplayer) m_paninc.x = -FTOM(F_PANINC);
-                else rc = false;
+                else rc = doom_false;
                 break;
             case AM_PANUPKEY: // pan up
                 if (!followplayer) m_paninc.y = FTOM(F_PANINC);
-                else rc = false;
+                else rc = doom_false;
                 break;
             case AM_PANDOWNKEY: // pan down
                 if (!followplayer) m_paninc.y = -FTOM(F_PANINC);
-                else rc = false;
+                else rc = doom_false;
                 break;
             case AM_ZOOMOUTKEY: // zoom out
                 mtof_zoommul = M_ZOOMOUT;
@@ -8346,7 +8343,7 @@ doom_boolean AM_Responder(event_t* ev)
                 break;
             case AM_ENDKEY:
                 bigstate = 0;
-                viewactive = true;
+                viewactive = doom_true;
                 AM_Stop();
                 break;
             case AM_GOBIGKEY:
@@ -8361,11 +8358,11 @@ doom_boolean AM_Responder(event_t* ev)
             case AM_FOLLOWKEY:
                 followplayer = !followplayer;
                 f_oldloc.x = DOOM_MAXINT;
-                plr->message = followplayer ? AMSTR_FOLLOWON : AMSTR_FOLLOWOFF;
+                plr->message = followplayer ? (char*)AMSTR_FOLLOWON : (char*)AMSTR_FOLLOWOFF;
                 break;
             case AM_GRIDKEY:
                 grid = !grid;
-                plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
+                plr->message = grid ? (char*)AMSTR_GRIDON : (char*)AMSTR_GRIDOFF;
                 break;
             case AM_MARKKEY:
                 doom_strcpy(buffer, AMSTR_MARKEDSPOT);
@@ -8377,22 +8374,22 @@ doom_boolean AM_Responder(event_t* ev)
                 break;
             case AM_CLEARMARKKEY:
                 AM_clearMarks();
-                plr->message = AMSTR_MARKSCLEARED;
+                plr->message = (char*)AMSTR_MARKSCLEARED;
                 break;
             default:
                 cheatstate = 0;
-                rc = false;
+                rc = doom_false;
         }
         if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
         {
-            rc = false;
+            rc = doom_false;
             cheating = (cheating + 1) % 3;
         }
     }
 
     else if (ev->type == ev_keyup)
     {
-        rc = false;
+        rc = doom_false;
         switch (ev->data1)
         {
             case AM_PANRIGHTKEY:
@@ -8527,9 +8524,9 @@ doom_boolean AM_clipMline(mline_t* ml, fline_t* fl)
         TOP = 8
     };
 
-    register int outcode1 = 0;
-    register int outcode2 = 0;
-    register int outside;
+    int outcode1 = 0;
+    int outcode2 = 0;
+    int outside;
 
     fpoint_t tmp;
     int dx;
@@ -8556,7 +8553,7 @@ doom_boolean AM_clipMline(mline_t* ml, fline_t* fl)
         outcode2 = BOTTOM;
 
     if (outcode1 & outcode2)
-        return false; // trivially outside
+        return doom_false; // trivially outside
 
     if (ml->a.x < m_x)
         outcode1 |= LEFT;
@@ -8569,7 +8566,7 @@ doom_boolean AM_clipMline(mline_t* ml, fline_t* fl)
         outcode2 |= RIGHT;
 
     if (outcode1 & outcode2)
-        return false; // trivially outside
+        return doom_false; // trivially outside
 
     // transform to frame-buffer coordinates.
     fl->a.x = CXMTOF(ml->a.x);
@@ -8581,7 +8578,7 @@ doom_boolean AM_clipMline(mline_t* ml, fline_t* fl)
     DOOUTCODE(outcode2, fl->b.x, fl->b.y);
 
     if (outcode1 & outcode2)
-        return false;
+        return doom_false;
 
     while (outcode1 | outcode2)
     {
@@ -8634,10 +8631,10 @@ doom_boolean AM_clipMline(mline_t* ml, fline_t* fl)
         }
 
         if (outcode1 & outcode2)
-            return false; // trivially outside
+            return doom_false; // trivially outside
     }
 
-    return true;
+    return doom_true;
 }
 #undef DOOUTCODE
 
@@ -8647,15 +8644,15 @@ doom_boolean AM_clipMline(mline_t* ml, fline_t* fl)
 //
 void AM_drawFline(fline_t* fl, int color)
 {
-    register int x;
-    register int y;
-    register int dx;
-    register int dy;
-    register int sx;
-    register int sy;
-    register int ax;
-    register int ay;
-    register int d;
+    int x;
+    int y;
+    int dx;
+    int dy;
+    int sx;
+    int sy;
+    int ax;
+    int ay;
+    int d;
 
     static int fuck = 0;
 
@@ -9145,9 +9142,9 @@ doom_boolean fastparm; // checkparm of -fast
 
 doom_boolean drone;
 
-doom_boolean singletics = true; // debug flag to cancel adaptiveness
+doom_boolean singletics = doom_true; // debug flag to cancel adaptiveness
 
-doom_boolean is_wiping_screen = false;
+doom_boolean is_wiping_screen = doom_false;
 
 skill_t startskill;
 int startepisode;
@@ -9215,7 +9212,7 @@ void D_ProcessEvents(void)
 
     // IF STORE DEMO, DO NOT ACCEPT INPUT
     if ((gamemode == commercial)
-        && (W_CheckNumForName("map01") < 0))
+        && (W_CheckNumForName((char*)"map01") < 0))
         return;
 
     for (; eventtail != eventhead; )
@@ -9236,11 +9233,11 @@ void D_ProcessEvents(void)
 //
 void D_Display(void)
 {
-    static doom_boolean viewactivestate = false;
-    static doom_boolean menuactivestate = false;
-    static doom_boolean inhelpscreensstate = false;
-    static doom_boolean fullscreen = false;
-    static gamestate_t oldgamestate = -1;
+    static doom_boolean viewactivestate = doom_false;
+    static doom_boolean menuactivestate = doom_false;
+    static doom_boolean inhelpscreensstate = doom_false;
+    static doom_boolean fullscreen = doom_false;
+    static gamestate_t oldgamestate = (gamestate_t)-1;
     static int borderdrawcount;
     int wipestart;
     int y;
@@ -9250,24 +9247,24 @@ void D_Display(void)
     if (nodrawers)
         return; // for comparative timing / profiling
 
-    redrawsbar = false;
+    redrawsbar = doom_false;
 
     // change the view size if needed
     if (setsizeneeded)
     {
         R_ExecuteSetViewSize();
-        oldgamestate = -1; // force background redraw
+        oldgamestate = (gamestate_t)-1; // force background redraw
         borderdrawcount = 3;
     }
 
     // save the current screen if about to wipe
     if (gamestate != wipegamestate)
     {
-        wipe = true;
+        wipe = doom_true;
         wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
     }
     else
-        wipe = false;
+        wipe = doom_false;
 
     if (gamestate == GS_LEVEL && gametic)
         HU_Erase();
@@ -9281,9 +9278,9 @@ void D_Display(void)
             if (automapactive)
                 AM_Drawer();
             if (wipe || (viewheight != 200 && fullscreen))
-                redrawsbar = true;
+                redrawsbar = doom_true;
             if (inhelpscreensstate && !inhelpscreens)
-                redrawsbar = true;              // just put away the help screen
+                redrawsbar = doom_true;              // just put away the help screen
             ST_Drawer(viewheight == 200, redrawsbar);
             fullscreen = viewheight == 200;
             break;
@@ -9313,12 +9310,12 @@ void D_Display(void)
 
     // clean up border stuff
     if (gamestate != oldgamestate && gamestate != GS_LEVEL)
-        I_SetPalette(W_CacheLumpName("PLAYPAL", PU_CACHE));
+        I_SetPalette((byte*)W_CacheLumpName((char*)"PLAYPAL", PU_CACHE));
 
     // see if the border needs to be initially drawn
     if (gamestate == GS_LEVEL && oldgamestate != GS_LEVEL)
     {
-        viewactivestate = false;        // view was not active
+        viewactivestate = doom_false;        // view was not active
         R_FillBackScreen();    // draw the pattern into the back screen
     }
 
@@ -9348,7 +9345,7 @@ void D_Display(void)
         else
             y = viewwindowy + 4;
         V_DrawPatchDirect(viewwindowx + (scaledviewwidth - 68) / 2,
-                          y, 0, W_CacheLumpName("M_PAUSE", PU_CACHE));
+                          y, 0, (patch_t*)W_CacheLumpName((char*)"M_PAUSE", PU_CACHE));
     }
 
 
@@ -9395,7 +9392,7 @@ void D_Display(void)
 void D_UpdateWipe(void)
 {
     if (wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, 1))
-        is_wiping_screen = false;
+        is_wiping_screen = doom_false;
 }
 
 
@@ -9480,7 +9477,7 @@ void D_PageTicker(void)
 //
 void D_PageDrawer(void)
 {
-    V_DrawPatch(0, 0, 0, W_CacheLumpName(pagename, PU_CACHE));
+    V_DrawPatch(0, 0, 0, (patch_t*)W_CacheLumpName(pagename, PU_CACHE));
 }
 
 
@@ -9490,7 +9487,7 @@ void D_PageDrawer(void)
 //
 void D_AdvanceDemo(void)
 {
-    advancedemo = true;
+    advancedemo = doom_true;
 }
 
 
@@ -9501,9 +9498,9 @@ void D_AdvanceDemo(void)
 void D_DoAdvanceDemo(void)
 {
     players[consoleplayer].playerstate = PST_LIVE;  // not reborn
-    advancedemo = false;
-    usergame = false; // no save / end game here
-    paused = false;
+    advancedemo = doom_false;
+    usergame = doom_false; // no save / end game here
+    paused = doom_false;
     gameaction = ga_nothing;
 
     if (gamemode == retail)
@@ -9519,29 +9516,29 @@ void D_DoAdvanceDemo(void)
             else
                 pagetic = 170;
             gamestate = GS_DEMOSCREEN;
-            pagename = "TITLEPIC";
+            pagename = (char*)"TITLEPIC";
             if (gamemode == commercial)
                 S_StartMusic(mus_dm2ttl);
             else
                 S_StartMusic(mus_intro);
             break;
         case 1:
-            G_DeferedPlayDemo("demo1");
+            G_DeferedPlayDemo((char*)"demo1");
             break;
         case 2:
             pagetic = 200;
             gamestate = GS_DEMOSCREEN;
-            pagename = "CREDIT";
+            pagename = (char*)"CREDIT";
             break;
         case 3:
-            G_DeferedPlayDemo("demo2");
+            G_DeferedPlayDemo((char*)"demo2");
             break;
         case 4:
             gamestate = GS_DEMOSCREEN;
             if (gamemode == commercial)
             {
                 pagetic = 35 * 11;
-                pagename = "TITLEPIC";
+                pagename = (char*)"TITLEPIC";
                 S_StartMusic(mus_dm2ttl);
             }
             else
@@ -9549,17 +9546,17 @@ void D_DoAdvanceDemo(void)
                 pagetic = 200;
 
                 if (gamemode == retail)
-                    pagename = "CREDIT";
+                    pagename = (char*)"CREDIT";
                 else
-                    pagename = "HELP2";
+                    pagename = (char*)"HELP2";
             }
             break;
         case 5:
-            G_DeferedPlayDemo("demo3");
+            G_DeferedPlayDemo((char*)"demo3");
             break;
             // THE DEFINITIVE DOOM Special Edition demo
         case 6:
-            G_DeferedPlayDemo("demo4");
+            G_DeferedPlayDemo((char*)"demo4");
             break;
     }
 }
@@ -9587,7 +9584,7 @@ void D_AddFile(char* file)
     for (numwadfiles = 0; wadfiles[numwadfiles]; numwadfiles++)
         ;
 
-    newfile = doom_malloc(doom_strlen(file) + 1);
+    newfile = (char*)doom_malloc(doom_strlen(file) + 1);
     doom_strcpy(newfile, file);
 
     wadfiles[numwadfiles] = newfile;
@@ -9615,46 +9612,46 @@ void IdentifyVersion(void)
     char* doomwaddir;
     doomwaddir = doom_getenv("DOOMWADDIR");
     if (!doomwaddir)
-        doomwaddir = ".";
+        doomwaddir = (char*)".";
 
     // Commercial.
-    doom2wad = doom_malloc(doom_strlen(doomwaddir) + 1 + 9 + 1);
+    doom2wad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 + 9 + 1);
     //doom_sprintf(doom2wad, "%s/doom2.wad", doomwaddir);
     doom_strcpy(doom2wad, doomwaddir);
     doom_concat(doom2wad, "/doom2.wad");
 
     // Retail.
-    doomuwad = doom_malloc(doom_strlen(doomwaddir) + 1 + 8 + 1);
+    doomuwad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 + 8 + 1);
     //doom_sprintf(doomuwad, "%s/doomu.wad", doomwaddir);
     doom_strcpy(doomuwad, doomwaddir);
     doom_concat(doomuwad, "/doomu.wad");
 
     // Registered.
-    doomwad = doom_malloc(doom_strlen(doomwaddir) + 1 + 8 + 1);
+    doomwad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 + 8 + 1);
     //doom_sprintf(doomwad, "%s/doom.wad", doomwaddir);
     doom_strcpy(doomwad, doomwaddir);
     doom_concat(doomwad, "/doom.wad");
 
     // Shareware.
-    doom1wad = doom_malloc(doom_strlen(doomwaddir) + 1 + 9 + 1);
+    doom1wad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 + 9 + 1);
     //doom_sprintf(doom1wad, "%s/doom1.wad", doomwaddir);
     doom_strcpy(doom1wad, doomwaddir);
     doom_concat(doom1wad, "/doom1.wad");
 
     // Bug, dear Shawn.
    // Insufficient malloc, caused spurious realloc errors.
-    plutoniawad = doom_malloc(doom_strlen(doomwaddir) + 1 +/*9*/12 + 1);
+    plutoniawad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 +/*9*/12 + 1);
     //doom_sprintf(plutoniawad, "%s/plutonia.wad", doomwaddir);
     doom_strcpy(plutoniawad, doomwaddir);
     doom_concat(plutoniawad, "/plutonia.wad");
 
-    tntwad = doom_malloc(doom_strlen(doomwaddir) + 1 + 9 + 1);
+    tntwad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 + 9 + 1);
     //doom_sprintf(tntwad, "%s/tnt.wad", doomwaddir);
     doom_strcpy(tntwad, doomwaddir);
     doom_concat(tntwad, "/tnt.wad");
 
     // French stuff.
-    doom2fwad = doom_malloc(doom_strlen(doomwaddir) + 1 + 10 + 1);
+    doom2fwad = (char*)doom_malloc(doom_strlen(doomwaddir) + 1 + 10 + 1);
     //doom_sprintf(doom2fwad, "%s/doom2f.wad", doomwaddir);
     doom_strcpy(doom2fwad, doomwaddir);
     doom_concat(doom2fwad, "/doom2f.wad");
@@ -9662,7 +9659,7 @@ void IdentifyVersion(void)
 #if !defined(DOOM_WIN32)
     home = doom_getenv("HOME");
     if (!home)
-        I_Error("Error: Please set $HOME to your home directory");
+        I_Error((char*)"Error: Please set $HOME to your home directory");
 #else
     home = ".";
 #endif
@@ -9670,43 +9667,43 @@ void IdentifyVersion(void)
     doom_strcpy(basedefault, home);
     doom_concat(basedefault, "/.doomrc");
 
-    if (M_CheckParm("-shdev"))
+    if (M_CheckParm((char*)"-shdev"))
     {
         gamemode = shareware;
-        devparm = true;
-        D_AddFile(DEVDATA"doom1.wad");
-        D_AddFile(DEVMAPS"data_se/texture1.lmp");
-        D_AddFile(DEVMAPS"data_se/pnames.lmp");
+        devparm = doom_true;
+        D_AddFile((char*)DEVDATA"doom1.wad");
+        D_AddFile((char*)DEVMAPS"data_se/texture1.lmp");
+        D_AddFile((char*)DEVMAPS"data_se/pnames.lmp");
         doom_strcpy(basedefault, DEVDATA"default.cfg");
         return;
     }
 
-    if (M_CheckParm("-regdev"))
+    if (M_CheckParm((char*)"-regdev"))
     {
         gamemode = registered;
-        devparm = true;
-        D_AddFile(DEVDATA"doom.wad");
-        D_AddFile(DEVMAPS"data_se/texture1.lmp");
-        D_AddFile(DEVMAPS"data_se/texture2.lmp");
-        D_AddFile(DEVMAPS"data_se/pnames.lmp");
+        devparm = doom_true;
+        D_AddFile((char*)DEVDATA"doom.wad");
+        D_AddFile((char*)DEVMAPS"data_se/texture1.lmp");
+        D_AddFile((char*)DEVMAPS"data_se/texture2.lmp");
+        D_AddFile((char*)DEVMAPS"data_se/pnames.lmp");
         doom_strcpy(basedefault, DEVDATA"default.cfg");
         return;
     }
 
-    if (M_CheckParm("-comdev"))
+    if (M_CheckParm((char*)"-comdev"))
     {
         gamemode = commercial;
-        devparm = true;
+        devparm = doom_true;
         /* I don't bother
         if(plutonia)
             D_AddFile (DEVDATA"plutonia.wad");
         else if(tnt)
             D_AddFile (DEVDATA"tnt.wad");
         else*/
-        D_AddFile(DEVDATA"doom2.wad");
+        D_AddFile((char*)DEVDATA"doom2.wad");
 
-        D_AddFile(DEVMAPS"cdata/texture1.lmp");
-        D_AddFile(DEVMAPS"cdata/pnames.lmp");
+        D_AddFile((char*)DEVMAPS"cdata/texture1.lmp");
+        D_AddFile((char*)DEVMAPS"cdata/pnames.lmp");
         doom_strcpy(basedefault, DEVDATA"default.cfg");
         return;
     }
@@ -9810,7 +9807,7 @@ void FindResponseFile(void)
             doom_seek(handle, 0, DOOM_SEEK_END);
             size = doom_tell(handle);
             doom_seek(handle, 0, DOOM_SEEK_SET);
-            file = doom_malloc(size);
+            file = (char*)doom_malloc(size);
             doom_read(handle, file, size * 1);
             doom_close(handle);
 
@@ -9819,7 +9816,7 @@ void FindResponseFile(void)
                 moreargs[index++] = myargv[k];
 
             firstargv = myargv[0];
-            myargv = doom_malloc(sizeof(char*) * MAXARGVS);
+            myargv = (char**)doom_malloc(sizeof(char*) * MAXARGVS);
             doom_memset(myargv, 0, sizeof(char*) * MAXARGVS);
             myargv[0] = firstargv;
 
@@ -9869,15 +9866,15 @@ void D_DoomMain(void)
 
     IdentifyVersion();
 
-    modifiedgame = false;
+    modifiedgame = doom_false;
 
-    nomonsters = M_CheckParm("-nomonsters");
-    respawnparm = M_CheckParm("-respawn");
-    fastparm = M_CheckParm("-fast");
-    devparm = M_CheckParm("-devparm");
-    if (M_CheckParm("-altdeath"))
+    nomonsters = M_CheckParm((char*)"-nomonsters");
+    respawnparm = M_CheckParm((char*)"-respawn");
+    fastparm = M_CheckParm((char*)"-fast");
+    devparm = M_CheckParm((char*)"-devparm");
+    if (M_CheckParm((char*)"-altdeath"))
         deathmatch = 2;
-    else if (M_CheckParm("-deathmatch"))
+    else if (M_CheckParm((char*)"-deathmatch"))
         deathmatch = 1;
 
     switch (gamemode)
@@ -9977,7 +9974,7 @@ void D_DoomMain(void)
 #endif
 
     // turbo option
-    if ((p = M_CheckParm("-turbo")))
+    if ((p = M_CheckParm((char*)"-turbo")))
     {
         int     scale = 200;
         extern int forwardmove[2];
@@ -10004,7 +10001,7 @@ void D_DoomMain(void)
     //
     // convenience hack to allow -wart e m to add a wad file
     // prepend a tilde to the filename so wadfile will be reloadable
-    p = M_CheckParm("-wart");
+    p = M_CheckParm((char*)"-wart");
     if (p)
     {
         myargv[p][4] = 'p';     // big hack, change to -warp
@@ -10016,7 +10013,7 @@ void D_DoomMain(void)
             case retail:
             case registered:
                 //doom_sprintf(file, "~"DEVMAPS"E%cM%c.wad", myargv[p + 1][0], myargv[p + 2][0]);
-                doom_strcpy(file, "~"DEVMAPS"E");
+                doom_strcpy(file, (char*)"~" DEVMAPS "E");
                 doom_concat(file, doom_ctoa(myargv[p + 1][0]));
                 doom_concat(file, "M");
                 doom_concat(file, doom_ctoa(myargv[p + 2][0]));
@@ -10036,14 +10033,14 @@ void D_DoomMain(void)
                 if (p < 10)
                 {
                     //doom_sprintf(file, "~"DEVMAPS"cdata/map0%i.wad", p);
-                    doom_strcpy(file, "~"DEVMAPS"cdata/map0");
+                    doom_strcpy(file, (char*)"~" DEVMAPS "cdata/map0");
                     doom_concat(file, doom_itoa(p, 10));
                     doom_concat(file, ".wad");
                 }
                 else
                 {
                     //doom_sprintf(file, "~"DEVMAPS"cdata/map%i.wad", p);
-                    doom_strcpy(file, "~"DEVMAPS"cdata/map");
+                    doom_strcpy(file, (char*)"~" DEVMAPS "cdata/map");
                     doom_concat(file, doom_itoa(p, 10));
                     doom_concat(file, ".wad");
                 }
@@ -10052,20 +10049,20 @@ void D_DoomMain(void)
         D_AddFile(file);
     }
 
-    p = M_CheckParm("-file");
+    p = M_CheckParm((char*)"-file");
     if (p)
     {
         // the parms after p are wadfile/lump names,
         // until end of parms or another - preceded parm
-        modifiedgame = true;            // homebrew levels
+        modifiedgame = doom_true;            // homebrew levels
         while (++p != myargc && myargv[p][0] != '-')
             D_AddFile(myargv[p]);
     }
 
-    p = M_CheckParm("-playdemo");
+    p = M_CheckParm((char*)"-playdemo");
 
     if (!p)
-        p = M_CheckParm("-timedemo");
+        p = M_CheckParm((char*)"-timedemo");
 
     if (p && p < myargc - 1)
     {
@@ -10083,25 +10080,25 @@ void D_DoomMain(void)
     startskill = sk_medium;
     startepisode = 1;
     startmap = 1;
-    autostart = false;
+    autostart = doom_false;
 
 
-    p = M_CheckParm("-skill");
+    p = M_CheckParm((char*)"-skill");
     if (p && p < myargc - 1)
     {
-        startskill = myargv[p + 1][0] - '1';
-        autostart = true;
+        startskill = (skill_t)(myargv[p + 1][0] - '1');
+        autostart = doom_true;
     }
 
-    p = M_CheckParm("-episode");
+    p = M_CheckParm((char*)"-episode");
     if (p && p < myargc - 1)
     {
         startepisode = myargv[p + 1][0] - '0';
         startmap = 1;
-        autostart = true;
+        autostart = doom_true;
     }
 
-    p = M_CheckParm("-timer");
+    p = M_CheckParm((char*)"-timer");
     if (p && p < myargc - 1 && deathmatch)
     {
         int     time;
@@ -10115,11 +10112,11 @@ void D_DoomMain(void)
         doom_print(".\n");
     }
 
-    p = M_CheckParm("-avg");
+    p = M_CheckParm((char*)"-avg");
     if (p && p < myargc - 1 && deathmatch)
         doom_print("Austin Virtual Gaming: Levels will end after 20 minutes\n");
 
-    p = M_CheckParm("-warp");
+    p = M_CheckParm((char*)"-warp");
     if (p && p < myargc - 1)
     {
         if (gamemode == commercial)
@@ -10129,7 +10126,7 @@ void D_DoomMain(void)
             startepisode = myargv[p + 1][0] - '0';
             startmap = myargv[p + 2][0] - '0';
         }
-        autostart = true;
+        autostart = doom_true;
     }
 
     // init subsystems
@@ -10151,7 +10148,7 @@ void D_DoomMain(void)
     {
         // These are the lumps that will be checked in IWAD,
         // if any one is not present, execution will be aborted.
-        char name[23][8] =
+        char name[23][9] =
         {
             "e2m1","e2m2","e2m3","e2m4","e2m5","e2m6","e2m7","e2m8","e2m9",
             "e3m1","e3m3","e3m3","e3m4","e3m5","e3m6","e3m7","e3m8","e3m9",
@@ -10160,7 +10157,7 @@ void D_DoomMain(void)
         int i;
 
         if (gamemode == shareware)
-            I_Error("Error: \nYou cannot -file with the shareware "
+            I_Error((char*)"Error: \nYou cannot -file with the shareware "
                     "version. Register!");
 
         // Check for fake IWAD with right name,
@@ -10168,7 +10165,7 @@ void D_DoomMain(void)
         if (gamemode == registered)
             for (i = 0; i < 23; i++)
                 if (W_CheckNumForName(name[i]) < 0)
-                    I_Error("Error: \nThis is not the registered version.");
+                    I_Error((char*)"Error: \nThis is not the registered version.");
     }
 
     // Iff additonal PWAD files are used, print modified banner
@@ -10251,30 +10248,30 @@ void D_DoomMain(void)
 #endif
 
     // start the apropriate game based on parms
-    p = M_CheckParm("-record");
+    p = M_CheckParm((char*)"-record");
 
     if (p && p < myargc - 1)
     {
         G_RecordDemo(myargv[p + 1]);
-        autostart = true;
+        autostart = doom_true;
     }
 
-    p = M_CheckParm("-playdemo");
+    p = M_CheckParm((char*)"-playdemo");
     if (p && p < myargc - 1)
     {
-        singledemo = true;              // quit after one demo
+        singledemo = doom_true;              // quit after one demo
         G_DeferedPlayDemo(myargv[p + 1]);
         D_DoomLoop();  // never returns
     }
 
-    p = M_CheckParm("-timedemo");
+    p = M_CheckParm((char*)"-timedemo");
     if (p && p < myargc - 1)
     {
         G_TimeDemo(myargv[p + 1]);
         D_DoomLoop();  // never returns
     }
 
-    p = M_CheckParm("-loadgame");
+    p = M_CheckParm((char*)"-loadgame");
     if (p && p < myargc - 1)
     {
 #if 0 // [pd] We don't support the cdrom flag
@@ -10308,7 +10305,7 @@ void D_DoomMain(void)
     if (demorecording)
         G_BeginRecording();
 
-    if (M_CheckParm("-debugfile"))
+    if (M_CheckParm((char*)"-debugfile"))
     {
         char    filename[20];
         //doom_sprintf(filename, "debug%i.txt", consoleplayer);
@@ -10341,7 +10338,7 @@ ticcmd_t localcmds[BACKUPTICS];
 
 ticcmd_t netcmds[MAXPLAYERS][BACKUPTICS];
 int nettics[MAXNETNODES];
-doom_boolean nodeingame[MAXNETNODES]; // set false as nodes leave game
+doom_boolean nodeingame[MAXNETNODES]; // set doom_false as nodes leave game
 doom_boolean remoteresend[MAXNETNODES]; // set when local needs tics
 int resendto[MAXNETNODES]; // set when remote needs tics
 int resendcount[MAXNETNODES];
@@ -10442,7 +10439,7 @@ void HSendPacket(int node, int flags)
     if (!node)
     {
         reboundstore = *netbuffer;
-        reboundpacket = true;
+        reboundpacket = doom_true;
         return;
     }
 
@@ -10450,7 +10447,7 @@ void HSendPacket(int node, int flags)
         return;
 
     if (!netgame)
-        I_Error("Error: Tried to transmit to another node");
+        I_Error((char*)"Error: Tried to transmit to another node");
 
     doomcom->command = CMD_SEND;
     doomcom->remotenode = node;
@@ -10496,7 +10493,7 @@ void HSendPacket(int node, int flags)
 
 //
 // HGetPacket
-// Returns false if no packet is waiting
+// Returns doom_false if no packet is waiting
 //
 doom_boolean HGetPacket(void)
 {
@@ -10504,21 +10501,21 @@ doom_boolean HGetPacket(void)
     {
         *netbuffer = reboundstore;
         doomcom->remotenode = 0;
-        reboundpacket = false;
-        return true;
+        reboundpacket = doom_false;
+        return doom_true;
     }
 
     if (!netgame)
-        return false;
+        return doom_false;
 
     if (demoplayback)
-        return false;
+        return doom_false;
 
     doomcom->command = CMD_GET;
     I_NetCmd();
 
     if (doomcom->remotenode == -1)
-        return false;
+        return doom_false;
 
     if (doomcom->datalength != NetbufferSize())
     {
@@ -10529,7 +10526,7 @@ doom_boolean HGetPacket(void)
             doom_fprint(debugfile, doom_itoa(doomcom->datalength, 10));
             doom_fprint(debugfile, "\n");
         }
-        return false;
+        return doom_false;
     }
 
     if (NetbufferChecksum() != (netbuffer->checksum & NCMD_CHECKSUM))
@@ -10538,7 +10535,7 @@ doom_boolean HGetPacket(void)
         {
             doom_fprint(debugfile, "bad packet checksum\n");
         }
-        return false;
+        return doom_false;
     }
 
     if (debugfile)
@@ -10584,7 +10581,7 @@ doom_boolean HGetPacket(void)
             doom_fprint(debugfile, "\n");
         }
     }
-    return true;
+    return doom_true;
 }
 
 
@@ -10617,8 +10614,8 @@ void GetPackets(void)
         {
             if (!nodeingame[netnode])
                 continue;
-            nodeingame[netnode] = false;
-            playeringame[netconsole] = false;
+            nodeingame[netnode] = doom_false;
+            playeringame[netconsole] = doom_false;
             doom_strcpy(exitmsg, "Player 1 left the game");
             exitmsg[7] += netconsole;
             players[consoleplayer].message = exitmsg;
@@ -10629,7 +10626,7 @@ void GetPackets(void)
 
         // check for a remote game kill
         if (netbuffer->checksum & NCMD_KILL)
-            I_Error("Error: Killed by network driver");
+            I_Error((char*)"Error: Killed by network driver");
 
         nodeforplayer[netconsole] = netnode;
 
@@ -10687,7 +10684,7 @@ void GetPackets(void)
                 doom_fprint(debugfile, doom_itoa(nettics[netnode], 10));
                 doom_fprint(debugfile, ")\n");
             }
-            remoteresend[netnode] = true;
+            remoteresend[netnode] = doom_true;
             continue;
         }
 
@@ -10695,7 +10692,7 @@ void GetPackets(void)
         {
             int                start;
 
-            remoteresend[netnode] = false;
+            remoteresend[netnode] = doom_false;
 
             start = nettics[netnode] - realstart;
             src = &netbuffer->cmds[start];
@@ -10771,7 +10768,7 @@ void NetUpdate(void)
             netbuffer->starttic = realstart = resendto[i];
             netbuffer->numtics = maketic - realstart;
             if (netbuffer->numtics > BACKUPTICS)
-                I_Error("Error: NetUpdate: netbuffer->numtics > BACKUPTICS");
+                I_Error((char*)"Error: NetUpdate: netbuffer->numtics > BACKUPTICS");
 
             resendto[i] = maketic - doomcom->extratics;
 
@@ -10815,7 +10812,7 @@ void CheckAbort(void)
     {
         ev = &events[eventtail];
         if (ev->type == ev_keydown && ev->data1 == KEY_ESCAPE)
-            I_Error("Error: Network game synchronization aborted.");
+            I_Error((char*)"Error: Network game synchronization aborted.");
     }
 
     eventtail++;
@@ -10831,7 +10828,7 @@ void D_ArbitrateNetStart(void)
     int i;
     doom_boolean gotinfo[MAXNETNODES];
 
-    autostart = true;
+    autostart = doom_true;
     doom_memset(gotinfo, 0, sizeof(gotinfo));
 
     if (doomcom->consoleplayer)
@@ -10846,8 +10843,8 @@ void D_ArbitrateNetStart(void)
             if (netbuffer->checksum & NCMD_SETUP)
             {
                 if (netbuffer->player != VERSION)
-                    I_Error("Error: Different DOOM versions cannot play a net game!");
-                startskill = netbuffer->retransmitfrom & 15;
+                    I_Error((char*)"Error: Different DOOM versions cannot play a net game!");
+                startskill = (skill_t)(netbuffer->retransmitfrom & 15);
                 deathmatch = (netbuffer->retransmitfrom & 0xc0) >> 6;
                 nomonsters = (netbuffer->retransmitfrom & 0x20) > 0;
                 respawnparm = (netbuffer->retransmitfrom & 0x10) > 0;
@@ -10883,12 +10880,12 @@ void D_ArbitrateNetStart(void)
             for (i = 10; i && HGetPacket(); --i)
             {
                 if ((netbuffer->player & 0x7f) < MAXNETNODES)
-                    gotinfo[netbuffer->player & 0x7f] = true;
+                    gotinfo[netbuffer->player & 0x7f] = doom_true;
             }
 #else
             while (HGetPacket())
             {
-                gotinfo[netbuffer->player & 0x7f] = true;
+                gotinfo[netbuffer->player & 0x7f] = doom_true;
             }
 #endif
 
@@ -10910,16 +10907,16 @@ void D_CheckNetGame(void)
 
     for (i = 0; i < MAXNETNODES; i++)
     {
-        nodeingame[i] = false;
+        nodeingame[i] = doom_false;
         nettics[i] = 0;
-        remoteresend[i] = false;        // set when local needs tics
+        remoteresend[i] = doom_false;        // set when local needs tics
         resendto[i] = 0;                // which tic to start sending
     }
 
     // I_InitNetwork sets doomcom and netgame
     I_InitNetwork();
     if (doomcom->id != DOOMCOM_ID)
-        I_Error("Error: Doomcom buffer invalid!");
+        I_Error((char*)"Error: Doomcom buffer invalid!");
 
     netbuffer = &doomcom->data;
     consoleplayer = displayplayer = doomcom->consoleplayer;
@@ -10945,9 +10942,9 @@ void D_CheckNetGame(void)
         maxsend = 1;
 
     for (i = 0; i < doomcom->numplayers; i++)
-        playeringame[i] = true;
+        playeringame[i] = doom_true;
     for (i = 0; i < doomcom->numnodes; i++)
-        nodeingame[i] = true;
+        nodeingame[i] = doom_true;
 
     //doom_print("player %i of %i (%i nodes)\n",
     //       consoleplayer + 1, doomcom->numplayers, doomcom->numnodes);
@@ -11090,7 +11087,7 @@ void TryRunTics(void)
                 lowtic = nettics[i];
 
         if (lowtic < gametic / ticdup)
-            I_Error("Error: TryRunTics: lowtic < gametic");
+            I_Error((char*)"Error: TryRunTics: lowtic < gametic");
 
         // don't stay in here forever -- give the menu a chance to work
         if (I_GetTime() / ticdup - entertic >= 20)
@@ -11106,7 +11103,7 @@ void TryRunTics(void)
         for (i = 0; i < ticdup; i++)
         {
             if (gametic / ticdup > lowtic)
-                I_Error("Error: gametic>lowtic");
+                I_Error((char*)"Error: gametic>lowtic");
             if (advancedemo)
                 D_DoAdvanceDemo();
             M_Ticker();
@@ -11144,35 +11141,35 @@ doom_boolean modifiedgame;
 char* endmsg[NUM_QUITMESSAGES + 1] =
 {
     // DOOM1
-    QUITMSG,
-    "please don't leave, there's more\ndemons to toast!",
-    "let's beat it -- this is turning\ninto a bloodbath!",
-    "i wouldn't leave if i were you.\ndos is much worse.",
-    "you're trying to say you like dos\nbetter than me, right?",
-    "don't leave yet -- there's a\ndemon around that corner!",
-    "ya know, next time you come in here\ni'm gonna toast ya.",
-    "go ahead and leave. see if i care.",
+    (char*)QUITMSG,
+    (char*)"please don't leave, there's more\ndemons to toast!",
+    (char*)"let's beat it -- this is turning\ninto a bloodbath!",
+    (char*)"i wouldn't leave if i were you.\ndos is much worse.",
+    (char*)"you're trying to say you like dos\nbetter than me, right?",
+    (char*)"don't leave yet -- there's a\ndemon around that corner!",
+    (char*)"ya know, next time you come in here\ni'm gonna toast ya.",
+    (char*)"go ahead and leave. see if i care.",
 
     // QuitDOOM II messages
-    "you want to quit?\nthen, thou hast lost an eighth!",
-    "don't go now, there's a \ndimensional shambler waiting\nat the dos prompt!",
-    "get outta here and go back\nto your boring programs.",
-    "if i were your boss, i'd \n deathmatch ya in a minute!",
-    "look, bud. you leave now\nand you forfeit your body count!",
-    "just leave. when you come\nback, i'll be waiting with a bat.",
-    "you're lucky i don't smack\nyou for thinking about leaving.",
+    (char*)"you want to quit?\nthen, thou hast lost an eighth!",
+    (char*)"don't go now, there's a \ndimensional shambler waiting\nat the dos prompt!",
+    (char*)"get outta here and go back\nto your boring programs.",
+    (char*)"if i were your boss, i'd \n deathmatch ya in a minute!",
+    (char*)"look, bud. you leave now\nand you forfeit your body count!",
+    (char*)"just leave. when you come\nback, i'll be waiting with a bat.",
+    (char*)"you're lucky i don't smack\nyou for thinking about leaving.",
 
     // FinalDOOM?
-    "fuck you, pussy!\nget the fuck out!",
-    "you quit and i'll jizz\nin your cystholes!",
-    "if you leave, i'll make\nthe lord drink my jizz.",
-    "hey, ron! can we say\n'fuck' in the game?",
-    "i'd leave: this is just\nmore monsters and levels.\nwhat a load.",
-    "suck it down, asshole!\nyou're a fucking wimp!",
-    "don't quit now! we're \nstill spending your money!",
+    (char*)"fuck you, pussy!\nget the fuck out!",
+    (char*)"you quit and i'll jizz\nin your cystholes!",
+    (char*)"if you leave, i'll make\nthe lord drink my jizz.",
+    (char*)"hey, ron! can we say\n'fuck' in the game?",
+    (char*)"i'd leave: this is just\nmore monsters and levels.\nwhat a load.",
+    (char*)"suck it down, asshole!\nyou're a fucking wimp!",
+    (char*)"don't quit now! we're \nstill spending your money!",
 
     // Internal debug. Different style, too.
-    "THIS IS NO MESSAGE!\nPage intentionally left blank."
+    (char*)"THIS IS NO MESSAGE!\nPage intentionally left blank."
 };
 #define TEXTSPEED 3
 #define TEXTWAIT 250
@@ -11191,55 +11188,55 @@ int finalestage;
 
 int finalecount;
 
-char* e1text = E1TEXT;
-char* e2text = E2TEXT;
-char* e3text = E3TEXT;
-char* e4text = E4TEXT;
+char* e1text = (char*)E1TEXT;
+char* e2text = (char*)E2TEXT;
+char* e3text = (char*)E3TEXT;
+char* e4text = (char*)E4TEXT;
 
-char* c1text = C1TEXT;
-char* c2text = C2TEXT;
-char* c3text = C3TEXT;
-char* c4text = C4TEXT;
-char* c5text = C5TEXT;
-char* c6text = C6TEXT;
+char* c1text = (char*)C1TEXT;
+char* c2text = (char*)C2TEXT;
+char* c3text = (char*)C3TEXT;
+char* c4text = (char*)C4TEXT;
+char* c5text = (char*)C5TEXT;
+char* c6text = (char*)C6TEXT;
 
-char* p1text = P1TEXT;
-char* p2text = P2TEXT;
-char* p3text = P3TEXT;
-char* p4text = P4TEXT;
-char* p5text = P5TEXT;
-char* p6text = P6TEXT;
+char* p1text = (char*)P1TEXT;
+char* p2text = (char*)P2TEXT;
+char* p3text = (char*)P3TEXT;
+char* p4text = (char*)P4TEXT;
+char* p5text = (char*)P5TEXT;
+char* p6text = (char*)P6TEXT;
 
-char* t1text = T1TEXT;
-char* t2text = T2TEXT;
-char* t3text = T3TEXT;
-char* t4text = T4TEXT;
-char* t5text = T5TEXT;
-char* t6text = T6TEXT;
+char* t1text = (char*)T1TEXT;
+char* t2text = (char*)T2TEXT;
+char* t3text = (char*)T3TEXT;
+char* t4text = (char*)T4TEXT;
+char* t5text = (char*)T5TEXT;
+char* t6text = (char*)T6TEXT;
 
 char* finaletext;
 char* finaleflat;
 
 castinfo_t castorder[] = {
-    {CC_ZOMBIE, MT_POSSESSED},
-    {CC_SHOTGUN, MT_SHOTGUY},
-    {CC_HEAVY, MT_CHAINGUY},
-    {CC_IMP, MT_TROOP},
-    {CC_DEMON, MT_SERGEANT},
-    {CC_LOST, MT_SKULL},
-    {CC_CACO, MT_HEAD},
-    {CC_HELL, MT_KNIGHT},
-    {CC_BARON, MT_BRUISER},
-    {CC_ARACH, MT_BABY},
-    {CC_PAIN, MT_PAIN},
-    {CC_REVEN, MT_UNDEAD},
-    {CC_MANCU, MT_FATSO},
-    {CC_ARCH, MT_VILE},
-    {CC_SPIDER, MT_SPIDER},
-    {CC_CYBER, MT_CYBORG},
-    {CC_HERO, MT_PLAYER},
+    {(char*)CC_ZOMBIE, MT_POSSESSED},
+    {(char*)CC_SHOTGUN, MT_SHOTGUY},
+    {(char*)CC_HEAVY, MT_CHAINGUY},
+    {(char*)CC_IMP, MT_TROOP},
+    {(char*)CC_DEMON, MT_SERGEANT},
+    {(char*)CC_LOST, MT_SKULL},
+    {(char*)CC_CACO, MT_HEAD},
+    {(char*)CC_HELL, MT_KNIGHT},
+    {(char*)CC_BARON, MT_BRUISER},
+    {(char*)CC_ARACH, MT_BABY},
+    {(char*)CC_PAIN, MT_PAIN},
+    {(char*)CC_REVEN, MT_UNDEAD},
+    {(char*)CC_MANCU, MT_FATSO},
+    {(char*)CC_ARCH, MT_VILE},
+    {(char*)CC_SPIDER, MT_SPIDER},
+    {(char*)CC_CYBER, MT_CYBORG},
+    {(char*)CC_HERO, MT_PLAYER},
 
-    {0,0}
+    {0,(mobjtype_t)0}
 };
 
 int castnum;
@@ -11272,8 +11269,8 @@ void F_StartFinale(void)
 {
     gameaction = ga_nothing;
     gamestate = GS_FINALE;
-    viewactive = false;
-    automapactive = false;
+    viewactive = doom_false;
+    automapactive = doom_false;
 
     // Okay - IWAD dependend stuff.
     // This has been changed severly, and
@@ -11286,24 +11283,24 @@ void F_StartFinale(void)
         case registered:
         case retail:
         {
-            S_ChangeMusic(mus_victor, true);
+            S_ChangeMusic(mus_victor, doom_true);
 
             switch (gameepisode)
             {
                 case 1:
-                    finaleflat = "FLOOR4_8";
+                    finaleflat = (char*)"FLOOR4_8";
                     finaletext = e1text;
                     break;
                 case 2:
-                    finaleflat = "SFLR6_1";
+                    finaleflat = (char*)"SFLR6_1";
                     finaletext = e2text;
                     break;
                 case 3:
-                    finaleflat = "MFLR8_4";
+                    finaleflat = (char*)"MFLR8_4";
                     finaletext = e3text;
                     break;
                 case 4:
-                    finaleflat = "MFLR8_3";
+                    finaleflat = (char*)"MFLR8_3";
                     finaletext = e4text;
                     break;
                 default:
@@ -11316,32 +11313,32 @@ void F_StartFinale(void)
         // DOOM II and missions packs with E1, M34
         case commercial:
         {
-            S_ChangeMusic(mus_read_m, true);
+            S_ChangeMusic(mus_read_m, doom_true);
 
             switch (gamemap)
             {
                 case 6:
-                    finaleflat = "SLIME16";
+                    finaleflat = (char*)"SLIME16";
                     finaletext = c1text;
                     break;
                 case 11:
-                    finaleflat = "RROCK14";
+                    finaleflat = (char*)"RROCK14";
                     finaletext = c2text;
                     break;
                 case 20:
-                    finaleflat = "RROCK07";
+                    finaleflat = (char*)"RROCK07";
                     finaletext = c3text;
                     break;
                 case 30:
-                    finaleflat = "RROCK17";
+                    finaleflat = (char*)"RROCK17";
                     finaletext = c4text;
                     break;
                 case 15:
-                    finaleflat = "RROCK13";
+                    finaleflat = (char*)"RROCK13";
                     finaletext = c5text;
                     break;
                 case 31:
-                    finaleflat = "RROCK19";
+                    finaleflat = (char*)"RROCK19";
                     finaletext = c6text;
                     break;
                 default:
@@ -11354,8 +11351,8 @@ void F_StartFinale(void)
 
         // Indeterminate.
         default:
-            S_ChangeMusic(mus_read_m, true);
-            finaleflat = "F_SKY1"; // Not used anywhere else.
+            S_ChangeMusic(mus_read_m, doom_true);
+            finaleflat = (char*)"F_SKY1"; // Not used anywhere else.
             finaletext = c1text;  // FIXME - other text, music?
             break;
     }
@@ -11370,7 +11367,7 @@ doom_boolean F_Responder(event_t* event)
     if (finalestage == 2)
         return F_CastResponder(event);
 
-    return false;
+    return doom_false;
 }
 
 
@@ -11415,7 +11412,7 @@ void F_Ticker(void)
     {
         finalecount = 0;
         finalestage = 1;
-        wipegamestate = -1;                // force a wipe
+        wipegamestate = (gamestate_t)-1;                // force a wipe
         if (gameepisode == 3)
             S_StartMusic(mus_bunny);
     }
@@ -11438,7 +11435,7 @@ void F_TextWrite(void)
     int cy;
 
     // erase the entire screen to a tiled background
-    src = W_CacheLumpName(finaleflat, PU_CACHE);
+    src = (unsigned char*)W_CacheLumpName(finaleflat, PU_CACHE);
     dest = screens[0];
 
     for (y = 0; y < SCREENHEIGHT; y++)
@@ -11500,16 +11497,16 @@ void F_TextWrite(void)
 //
 void F_StartCast(void)
 {
-    wipegamestate = -1; // force a screen wipe
+    wipegamestate = (gamestate_t)-1; // force a screen wipe
     castnum = 0;
     caststate = &states[mobjinfo[castorder[castnum].type].seestate];
     casttics = caststate->tics;
-    castdeath = false;
+    castdeath = doom_false;
     finalestage = 2;
     castframes = 0;
     castonmelee = 0;
-    castattacking = false;
-    S_ChangeMusic(mus_evil, true);
+    castattacking = doom_false;
+    S_ChangeMusic(mus_evil, doom_true);
 }
 
 
@@ -11528,7 +11525,7 @@ void F_CastTicker(void)
     {
         // switch from deathstate to next monster
         castnum++;
-        castdeath = false;
+        castdeath = doom_false;
         if (castorder[castnum].name == 0)
             castnum = 0;
         if (mobjinfo[castorder[castnum].type].seesound)
@@ -11584,7 +11581,7 @@ void F_CastTicker(void)
     if (castframes == 12)
     {
         // go into attack frame
-        castattacking = true;
+        castattacking = doom_true;
         if (castonmelee)
             caststate = &states[mobjinfo[castorder[castnum].type].meleestate];
         else
@@ -11607,7 +11604,7 @@ void F_CastTicker(void)
             || caststate == &states[mobjinfo[castorder[castnum].type].seestate])
         {
 stopattack:
-            castattacking = false;
+            castattacking = doom_false;
             castframes = 0;
             caststate = &states[mobjinfo[castorder[castnum].type].seestate];
         }
@@ -11625,21 +11622,21 @@ stopattack:
 doom_boolean F_CastResponder(event_t* ev)
 {
     if (ev->type != ev_keydown)
-        return false;
+        return doom_false;
 
     if (castdeath)
-        return true; // already in dying frames
+        return doom_true; // already in dying frames
 
     // go into death frame
-    castdeath = true;
+    castdeath = doom_true;
     caststate = &states[mobjinfo[castorder[castnum].type].deathstate];
     casttics = caststate->tics;
     castframes = 0;
-    castattacking = false;
+    castattacking = doom_false;
     if (mobjinfo[castorder[castnum].type].deathsound)
         S_StartSound(0, mobjinfo[castorder[castnum].type].deathsound);
 
-    return true;
+    return doom_true;
 }
 
 
@@ -11705,7 +11702,7 @@ void F_CastDrawer(void)
     patch_t* patch;
 
     // erase the entire screen to a background
-    V_DrawPatch(0, 0, 0, W_CacheLumpName("BOSSBACK", PU_CACHE));
+    V_DrawPatch(0, 0, 0, (patch_t*)W_CacheLumpName((char*)"BOSSBACK", PU_CACHE));
 
     F_CastPrint(castorder[castnum].name);
 
@@ -11715,7 +11712,7 @@ void F_CastDrawer(void)
     lump = sprframe->lump[0];
     flip = (doom_boolean)sprframe->flip[0];
 
-    patch = W_CacheLumpNum(lump + firstspritelump, PU_CACHE);
+    patch = (patch_t*)W_CacheLumpNum(lump + firstspritelump, PU_CACHE);
     if (flip)
         V_DrawPatchFlipped(160, 170, 0, patch);
     else
@@ -11767,8 +11764,8 @@ void F_BunnyScroll(void)
     int stage;
     static int laststage;
 
-    p1 = W_CacheLumpName("PFUB2", PU_LEVEL);
-    p2 = W_CacheLumpName("PFUB1", PU_LEVEL);
+    p1 = (patch_t*)W_CacheLumpName((char*)"PFUB2", PU_LEVEL);
+    p2 = (patch_t*)W_CacheLumpName((char*)"PFUB1", PU_LEVEL);
 
     V_MarkRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
 
@@ -11791,7 +11788,7 @@ void F_BunnyScroll(void)
     if (finalecount < 1180)
     {
         V_DrawPatch((SCREENWIDTH - 13 * 8) / 2,
-                    (SCREENHEIGHT - 8 * 8) / 2, 0, W_CacheLumpName("END0", PU_CACHE));
+                    (SCREENHEIGHT - 8 * 8) / 2, 0, (patch_t*)W_CacheLumpName((char*)"END0", PU_CACHE));
         laststage = 0;
         return;
     }
@@ -11808,7 +11805,7 @@ void F_BunnyScroll(void)
     //doom_sprintf(name, "END%i", stage);
     doom_strcpy(name, "END");
     doom_concat(name, doom_itoa(stage, 10));
-    V_DrawPatch((SCREENWIDTH - 13 * 8) / 2, (SCREENHEIGHT - 8 * 8) / 2, 0, W_CacheLumpName(name, PU_CACHE));
+    V_DrawPatch((SCREENWIDTH - 13 * 8) / 2, (SCREENHEIGHT - 8 * 8) / 2, 0, (patch_t*)W_CacheLumpName((char*)name, PU_CACHE));
 }
 
 
@@ -11832,21 +11829,21 @@ void F_Drawer(void)
             case 1:
                 if (gamemode == retail)
                     V_DrawPatch(0, 0, 0,
-                                W_CacheLumpName("CREDIT", PU_CACHE));
+                                (patch_t*)W_CacheLumpName((char*)"CREDIT", PU_CACHE));
                 else
                     V_DrawPatch(0, 0, 0,
-                                W_CacheLumpName("HELP2", PU_CACHE));
+                                (patch_t*)W_CacheLumpName((char*)"HELP2", PU_CACHE));
                 break;
             case 2:
                 V_DrawPatch(0, 0, 0,
-                            W_CacheLumpName("VICTORY2", PU_CACHE));
+                            (patch_t*)W_CacheLumpName((char*)"VICTORY2", PU_CACHE));
                 break;
             case 3:
                 F_BunnyScroll();
                 break;
             case 4:
                 V_DrawPatch(0, 0, 0,
-                            W_CacheLumpName("ENDPIC", PU_CACHE));
+                            (patch_t*)W_CacheLumpName((char*)"ENDPIC", PU_CACHE));
                 break;
         }
     }
@@ -11892,7 +11889,7 @@ int wipe_doColorXForm(int width, int height, int ticks)
     byte* e;
     int newval;
 
-    changed = false;
+    changed = doom_false;
     w = wipe_scr;
     e = wipe_scr_end;
 
@@ -11907,7 +11904,7 @@ int wipe_doColorXForm(int width, int height, int ticks)
                     *w = *e;
                 else
                     *w = newval;
-                changed = true;
+                changed = doom_true;
             }
             else if (*w < *e)
             {
@@ -11916,7 +11913,7 @@ int wipe_doColorXForm(int width, int height, int ticks)
                     *w = *e;
                 else
                     *w = newval;
-                changed = true;
+                changed = doom_true;
             }
         }
         w++;
@@ -11970,7 +11967,7 @@ int wipe_doMelt(int width, int height, int ticks)
 
     short* s;
     short* d;
-    doom_boolean done = true;
+    doom_boolean done = doom_true;
 
     width /= 2;
 
@@ -11980,7 +11977,7 @@ int wipe_doMelt(int width, int height, int ticks)
         {
             if (y[i] < 0)
             {
-                y[i]++; done = false;
+                y[i]++; done = doom_false;
             }
             else if (y[i] < height)
             {
@@ -12003,7 +12000,7 @@ int wipe_doMelt(int width, int height, int ticks)
                     d[idx] = *(s++);
                     idx += width;
                 }
-                done = false;
+                done = doom_false;
             }
         }
     }
@@ -12111,7 +12108,7 @@ doom_boolean sendpause; // send a pause event next tic
 doom_boolean sendsave; // send a save event next tic 
 doom_boolean usergame; // ok to save / end game 
 
-doom_boolean timingdemo; // if true, exit with report on completion 
+doom_boolean timingdemo; // if doom_true, exit with report on completion 
 doom_boolean nodrawers; // for comparative timing purposes 
 doom_boolean noblit; // for comparative timing purposes 
 int starttime; // for comparative timing purposes           
@@ -12119,7 +12116,7 @@ int starttime; // for comparative timing purposes
 doom_boolean viewactive;
 
 doom_boolean deathmatch; // only if started as net death 
-doom_boolean netgame; // only true if packets are broadcast 
+doom_boolean netgame; // only doom_true if packets are broadcast 
 doom_boolean playeringame[MAXPLAYERS];
 player_t players[MAXPLAYERS];
 
@@ -12138,7 +12135,7 @@ byte* demo_p;
 byte* demoend;
 doom_boolean singledemo; // quit after playing a demo from cmdline 
 
-doom_boolean precache = true; // if true, load all graphics at start 
+doom_boolean precache = doom_true; // if doom_true, load all graphics at start 
 
 wbstartstruct_t wminfo; // parms for world map / intermission 
 
@@ -12284,7 +12281,7 @@ void G_BuildTiccmd(ticcmd_t* cmd)
         || joybuttons[joybstrafe];
 
     extern int always_run;
-    doom_boolean running = always_run ? (gamekeydown[key_speed] ? false : true) : (gamekeydown[key_speed] ? true : false);
+    doom_boolean running = always_run ? (gamekeydown[key_speed] ? doom_false : doom_true) : (gamekeydown[key_speed] ? doom_true : doom_false);
     speed = running || joybuttons[joybspeed];
 
     forward = side = 0;
@@ -12378,7 +12375,7 @@ void G_BuildTiccmd(ticcmd_t* cmd)
         forward += forwardmove[speed];
 
     // forward double click
-    if (mousebuttons[mousebforward] != dclickstate && dclicktime > 1)
+    if ((int)mousebuttons[mousebforward] != dclickstate && dclicktime > 1)
     {
         dclickstate = mousebuttons[mousebforward];
         if (dclickstate)
@@ -12405,7 +12402,7 @@ void G_BuildTiccmd(ticcmd_t* cmd)
     bstrafe =
         mousebuttons[mousebstrafe]
         || joybuttons[joybstrafe];
-    if (bstrafe != dclickstate2 && dclicktime2 > 1)
+    if ((bstrafe != 0) != (dclickstate2 != 0) && dclicktime2 > 1)
     {
         dclickstate2 = bstrafe;
         if (dclickstate2)
@@ -12452,13 +12449,13 @@ void G_BuildTiccmd(ticcmd_t* cmd)
     // special buttons
     if (sendpause)
     {
-        sendpause = false;
+        sendpause = doom_false;
         cmd->buttons = BT_SPECIAL | BTS_PAUSE;
     }
 
     if (sendsave)
     {
-        sendsave = false;
+        sendsave = doom_false;
         cmd->buttons = BT_SPECIAL | BTS_SAVEGAME | (savegameslot << BTS_SAVESHIFT);
     }
 }
@@ -12476,7 +12473,7 @@ void G_DoLoadLevel(void)
     //  a flat. The data is in the WAD only because
     //  we look for an actual index, instead of simply
     //  setting one.
-    skyflatnum = R_FlatNumForName(SKYFLATNAME);
+    skyflatnum = R_FlatNumForName((char*)SKYFLATNAME);
 
     // DOOM determines the sky texture to be used
     // depending on the current episode, and the game version.
@@ -12484,18 +12481,18 @@ void G_DoLoadLevel(void)
         || (gamemode == pack_tnt)
         || (gamemode == pack_plut))
     {
-        skytexture = R_TextureNumForName("SKY3");
+        skytexture = R_TextureNumForName((char*)"SKY3");
         if (gamemap < 12)
-            skytexture = R_TextureNumForName("SKY1");
+            skytexture = R_TextureNumForName((char*)"SKY1");
         else
             if (gamemap < 21)
-                skytexture = R_TextureNumForName("SKY2");
+                skytexture = R_TextureNumForName((char*)"SKY2");
     }
 
     levelstarttic = gametic;        // for time calculation
 
     if (wipegamestate == GS_LEVEL)
-        wipegamestate = -1;             // force a wipe 
+        wipegamestate = (gamestate_t)-1;             // force a wipe 
 
     gamestate = GS_LEVEL;
 
@@ -12516,7 +12513,7 @@ void G_DoLoadLevel(void)
     doom_memset(gamekeydown, 0, sizeof(gamekeydown));
     joyxmove = joyymove = 0;
     mousex = mousey = 0;
-    sendpause = sendsave = paused = false;
+    sendpause = sendsave = paused = doom_false;
     doom_memset(mousebuttons, 0, sizeof(*mousebuttons) * 3);
     doom_memset(joybuttons, 0, sizeof(*joybuttons) * 4);
 }
@@ -12539,7 +12536,7 @@ doom_boolean G_Responder(event_t* ev)
             if (displayplayer == MAXPLAYERS)
                 displayplayer = 0;
         } while (!playeringame[displayplayer] && displayplayer != consoleplayer);
-        return true;
+        return doom_true;
     }
 
     // any other key pops up menu if in demos
@@ -12552,9 +12549,9 @@ doom_boolean G_Responder(event_t* ev)
             (ev->type == ev_joystick && ev->data1))
         {
             M_StartControlPanel();
-            return true;
+            return doom_true;
         }
-        return false;
+        return doom_false;
     }
 
     if (gamestate == GS_LEVEL)
@@ -12563,21 +12560,21 @@ doom_boolean G_Responder(event_t* ev)
         if (devparm && ev->type == ev_keydown && ev->data1 == ';')
         {
             G_DeathMatchSpawnPlayer(0);
-            return true;
+            return doom_true;
         }
 #endif 
         if (HU_Responder(ev))
-            return true;        // chat ate the event 
+            return doom_true;        // chat ate the event 
         if (ST_Responder(ev))
-            return true;        // status window ate it 
+            return doom_true;        // status window ate it 
         if (AM_Responder(ev))
-            return true;        // automap ate it 
+            return doom_true;        // automap ate it 
     }
 
     if (gamestate == GS_FINALE)
     {
         if (F_Responder(ev))
-            return true;        // finale ate the event 
+            return doom_true;        // finale ate the event 
     }
 
     switch (ev->type)
@@ -12585,17 +12582,17 @@ doom_boolean G_Responder(event_t* ev)
         case ev_keydown:
             if (ev->data1 == KEY_PAUSE)
             {
-                sendpause = true;
-                return true;
+                sendpause = doom_true;
+                return doom_true;
             }
             if (ev->data1 < NUMKEYS)
-                gamekeydown[ev->data1] = true;
-            return true;    // eat key down events 
+                gamekeydown[ev->data1] = doom_true;
+            return doom_true;    // eat key down events 
 
         case ev_keyup:
             if (ev->data1 < NUMKEYS)
-                gamekeydown[ev->data1] = false;
-            return false;   // always let key up events filter down 
+                gamekeydown[ev->data1] = doom_false;
+            return doom_false;   // always let key up events filter down 
 
         case ev_mouse:
             mousebuttons[0] = ev->data1 & 1;
@@ -12603,7 +12600,7 @@ doom_boolean G_Responder(event_t* ev)
             mousebuttons[2] = ev->data1 & 4;
             mousex = ev->data2 * (mouseSensitivity + 5) / 10;
             mousey = ev->data3 * (mouseSensitivity + 5) / 10;
-            return true;    // eat events 
+            return doom_true;    // eat events 
 
         case ev_joystick:
             joybuttons[0] = ev->data1 & 1;
@@ -12612,13 +12609,13 @@ doom_boolean G_Responder(event_t* ev)
             joybuttons[3] = ev->data1 & 8;
             joyxmove = ev->data2;
             joyymove = ev->data3;
-            return true;    // eat events 
+            return doom_true;    // eat events 
 
         default:
             break;
     }
 
-    return false;
+    return doom_false;
 }
 
 
@@ -12851,12 +12848,12 @@ void G_PlayerReborn(int player)
     players[player].itemcount = itemcount;
     players[player].secretcount = secretcount;
 
-    p->usedown = p->attackdown = true; // don't do anything immediately 
+    p->usedown = p->attackdown = doom_true; // don't do anything immediately 
     p->playerstate = PST_LIVE;
     p->health = MAXHEALTH;
     p->readyweapon = p->pendingweapon = wp_pistol;
-    p->weaponowned[wp_fist] = true;
-    p->weaponowned[wp_pistol] = true;
+    p->weaponowned[wp_fist] = doom_true;
+    p->weaponowned[wp_pistol] = doom_true;
     p->ammo[am_clip] = 50;
 
     for (i = 0; i < NUMAMMO; i++)
@@ -12865,7 +12862,7 @@ void G_PlayerReborn(int player)
 
 //
 // G_CheckSpot  
-// Returns false if the player cannot be respawned
+// Returns doom_false if the player cannot be respawned
 // at the given mapthing_t spot  
 // because something is occupying it 
 //
@@ -12885,15 +12882,15 @@ doom_boolean G_CheckSpot(int playernum, mapthing_t* mthing)
         for (i = 0; i < playernum; i++)
             if (players[i].mo->x == mthing->x << FRACBITS
                 && players[i].mo->y == mthing->y << FRACBITS)
-                return false;
-        return true;
+                return doom_false;
+        return doom_true;
     }
 
     x = mthing->x << FRACBITS;
     y = mthing->y << FRACBITS;
 
     if (!P_CheckPosition(players[playernum].mo, x, y))
-        return false;
+        return doom_false;
 
     // flush an old corpse if needed 
     if (bodyqueslot >= BODYQUESIZE)
@@ -12912,7 +12909,7 @@ doom_boolean G_CheckSpot(int playernum, mapthing_t* mthing)
     if (players[consoleplayer].viewz != 1)
         S_StartSound(mo, sfx_telept);        // don't start sound on first frame 
 
-    return true;
+    return doom_true;
 }
 
 
@@ -13012,7 +13009,7 @@ void G_ScreenShot(void)
 //
 void G_ExitLevel(void)
 {
-    secretexit = false;
+    secretexit = doom_false;
     gameaction = ga_completed;
 }
 
@@ -13021,10 +13018,10 @@ void G_SecretExitLevel(void)
 {
     // IF NO WOLF3D LEVELS, NO SECRET EXIT!
     if ((gamemode == commercial)
-        && (W_CheckNumForName("map31") < 0))
-        secretexit = false;
+        && (W_CheckNumForName((char*)"map31") < 0))
+        secretexit = doom_false;
     else
-        secretexit = true;
+        secretexit = doom_true;
     gameaction = ga_completed;
 }
 
@@ -13049,7 +13046,7 @@ void G_DoCompleted(void)
                 return;
             case 9:
                 for (i = 0; i < MAXPLAYERS; i++)
-                    players[i].didsecret = true;
+                    players[i].didsecret = doom_true;
                 break;
         }
 
@@ -13066,7 +13063,7 @@ void G_DoCompleted(void)
     {
         // exit secret level 
         for (i = 0; i < MAXPLAYERS; i++)
-            players[i].didsecret = true;
+            players[i].didsecret = doom_true;
     }
 
 
@@ -13140,8 +13137,8 @@ void G_DoCompleted(void)
     }
 
     gamestate = GS_INTERMISSION;
-    viewactive = false;
-    automapactive = false;
+    viewactive = doom_false;
+    automapactive = doom_false;
 
     if (statcopy)
         doom_memcpy(statcopy, &wminfo, sizeof(wminfo));
@@ -13158,7 +13155,7 @@ void G_WorldDone(void)
     gameaction = ga_worlddone;
 
     if (secretexit)
-        players[consoleplayer].didsecret = true;
+        players[consoleplayer].didsecret = doom_true;
 
     if (gamemode == commercial)
     {
@@ -13184,7 +13181,7 @@ void G_DoWorldDone(void)
     gamemap = wminfo.next + 1;
     G_DoLoadLevel();
     gameaction = ga_nothing;
-    viewactive = true;
+    viewactive = doom_true;
 }
 
 
@@ -13222,7 +13219,7 @@ void G_DoLoadGame(void)
         return;                                // bad version 
     save_p += VERSIONSIZE;
 
-    gameskill = *save_p++;
+    gameskill = (skill_t)(*save_p++);
     gameepisode = *save_p++;
     gamemap = *save_p++;
     for (i = 0; i < MAXPLAYERS; i++)
@@ -13244,7 +13241,7 @@ void G_DoLoadGame(void)
     P_UnArchiveSpecials();
 
     if (*save_p != 0x1d)
-        I_Error("Error: Bad savegame");
+        I_Error((char*)"Error: Bad savegame");
 
     // done 
     Z_Free(savebuffer);
@@ -13266,7 +13263,7 @@ void G_SaveGame(int slot, char* description)
 {
     savegameslot = slot;
     doom_strcpy(savedescription, description);
-    sendsave = true;
+    sendsave = doom_true;
 }
 
 void G_DoSaveGame(void)
@@ -13319,12 +13316,12 @@ void G_DoSaveGame(void)
 
     length = (int)(save_p - savebuffer);
     if (length > SAVEGAMESIZE)
-        I_Error("Error: Savegame buffer overrun");
+        I_Error((char*)"Error: Savegame buffer overrun");
     M_WriteFile(name, savebuffer, length);
     gameaction = ga_nothing;
     savedescription[0] = 0;
 
-    players[consoleplayer].message = GGSAVED;
+    players[consoleplayer].message = (char*)GGSAVED;
 
     // draw the pattern into the back screen
     R_FillBackScreen();
@@ -13348,14 +13345,14 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
 
 void G_DoNewGame(void)
 {
-    demoplayback = false;
-    netdemo = false;
-    netgame = false;
-    deathmatch = false;
+    demoplayback = doom_false;
+    netdemo = doom_false;
+    netgame = doom_false;
+    deathmatch = doom_false;
     playeringame[1] = playeringame[2] = playeringame[3] = 0;
-    respawnparm = false;
-    fastparm = false;
-    nomonsters = false;
+    respawnparm = doom_false;
+    fastparm = doom_false;
+    nomonsters = doom_false;
     consoleplayer = 0;
     G_InitNew(d_skill, d_episode, d_map);
     gameaction = ga_nothing;
@@ -13367,7 +13364,7 @@ void G_InitNew(skill_t skill, int episode, int map)
 
     if (paused)
     {
-        paused = false;
+        paused = doom_false;
         S_ResumeSound();
     }
 
@@ -13410,9 +13407,9 @@ void G_InitNew(skill_t skill, int episode, int map)
     M_ClearRandom();
 
     if (skill == sk_nightmare || respawnparm)
-        respawnmonsters = true;
+        respawnmonsters = doom_true;
     else
-        respawnmonsters = false;
+        respawnmonsters = doom_false;
 
     if (fastparm || (skill == sk_nightmare && gameskill != sk_nightmare))
     {
@@ -13436,41 +13433,41 @@ void G_InitNew(skill_t skill, int episode, int map)
     for (i = 0; i < MAXPLAYERS; i++)
         players[i].playerstate = PST_REBORN;
 
-    usergame = true;                // will be set false if a demo 
-    paused = false;
-    demoplayback = false;
-    automapactive = false;
-    viewactive = true;
+    usergame = doom_true;                // will be set doom_false if a demo 
+    paused = doom_false;
+    demoplayback = doom_false;
+    automapactive = doom_false;
+    viewactive = doom_true;
     gameepisode = episode;
     gamemap = map;
     gameskill = skill;
 
-    viewactive = true;
+    viewactive = doom_true;
 
     // set the sky map for the episode
     if (gamemode == commercial)
     {
-        skytexture = R_TextureNumForName("SKY3");
+        skytexture = R_TextureNumForName((char*)"SKY3");
         if (gamemap < 12)
-            skytexture = R_TextureNumForName("SKY1");
+            skytexture = R_TextureNumForName((char*)"SKY1");
         else
             if (gamemap < 21)
-                skytexture = R_TextureNumForName("SKY2");
+                skytexture = R_TextureNumForName((char*)"SKY2");
     }
     else
         switch (episode)
         {
             case 1:
-                skytexture = R_TextureNumForName("SKY1");
+                skytexture = R_TextureNumForName((char*)"SKY1");
                 break;
             case 2:
-                skytexture = R_TextureNumForName("SKY2");
+                skytexture = R_TextureNumForName((char*)"SKY2");
                 break;
             case 3:
-                skytexture = R_TextureNumForName("SKY3");
+                skytexture = R_TextureNumForName((char*)"SKY3");
                 break;
             case 4:        // Special Edition sky
-                skytexture = R_TextureNumForName("SKY4");
+                skytexture = R_TextureNumForName((char*)"SKY4");
                 break;
         }
 
@@ -13525,17 +13522,17 @@ void G_RecordDemo(char* name)
     int i;
     int maxsize;
 
-    usergame = false;
+    usergame = doom_false;
     doom_strcpy(demoname, name);
     doom_concat(demoname, ".lmp");
     maxsize = 0x20000;
-    i = M_CheckParm("-maxdemo");
+    i = M_CheckParm((char*)"-maxdemo");
     if (i && i < myargc - 1)
         maxsize = doom_atoi(myargv[i + 1]) * 1024;
-    demobuffer = Z_Malloc(maxsize, PU_STATIC, 0);
+    demobuffer = (byte*)Z_Malloc(maxsize, PU_STATIC, 0);
     demoend = demobuffer + maxsize;
 
-    demorecording = true;
+    demorecording = doom_true;
 }
 
 
@@ -13577,7 +13574,7 @@ void G_DoPlayDemo(void)
     int     i, episode, map;
 
     gameaction = ga_nothing;
-    demobuffer = demo_p = W_CacheLumpName(defdemoname, PU_STATIC);
+    demobuffer = demo_p = (byte*)W_CacheLumpName(defdemoname, PU_STATIC);
     byte demo_version = *demo_p++;
     if (demo_version != VERSION &&
         demo_version != 109) // Demos seem to run fine with version 109
@@ -13592,7 +13589,7 @@ void G_DoPlayDemo(void)
         return;
     }
 
-    skill = *demo_p++;
+    skill = (skill_t)(*demo_p++);
     episode = *demo_p++;
     map = *demo_p++;
     deathmatch = *demo_p++;
@@ -13605,17 +13602,17 @@ void G_DoPlayDemo(void)
         playeringame[i] = *demo_p++;
     if (playeringame[1])
     {
-        netgame = true;
-        netdemo = true;
+        netgame = doom_true;
+        netdemo = doom_true;
     }
 
     // don't spend a lot of time in loadlevel 
-    precache = false;
+    precache = doom_false;
     G_InitNew(skill, episode, map);
-    precache = true;
+    precache = doom_true;
 
-    usergame = false;
-    demoplayback = true;
+    usergame = doom_false;
+    demoplayback = doom_true;
 }
 
 //
@@ -13623,10 +13620,10 @@ void G_DoPlayDemo(void)
 //
 void G_TimeDemo(char* name)
 {
-    nodrawers = M_CheckParm("-nodraw");
-    noblit = M_CheckParm("-noblit");
-    timingdemo = true;
-    singletics = true;
+    nodrawers = M_CheckParm((char*)"-nodraw");
+    noblit = M_CheckParm((char*)"-noblit");
+    timingdemo = doom_true;
+    singletics = doom_true;
 
     defdemoname = name;
     gameaction = ga_playdemo;
@@ -13639,7 +13636,7 @@ void G_TimeDemo(char* name)
 = G_CheckDemoStatus
 =
 = Called after a death or level completion to allow demos to be cleaned up
-= Returns true if a new demo loop action will take place
+= Returns doom_true if a new demo loop action will take place
 ===================
 */
 
@@ -13667,17 +13664,17 @@ doom_boolean G_CheckDemoStatus(void)
             I_Quit();
 
         Z_ChangeTag(demobuffer, PU_CACHE);
-        demoplayback = false;
-        netdemo = false;
-        netgame = false;
-        deathmatch = false;
+        demoplayback = doom_false;
+        netdemo = doom_false;
+        netgame = doom_false;
+        deathmatch = doom_false;
         playeringame[1] = playeringame[2] = playeringame[3] = 0;
-        respawnparm = false;
-        fastparm = false;
-        nomonsters = false;
+        respawnparm = doom_false;
+        fastparm = doom_false;
+        nomonsters = doom_false;
         consoleplayer = 0;
         D_AdvanceDemo();
-        return true;
+        return doom_true;
     }
 
     if (demorecording)
@@ -13685,7 +13682,7 @@ doom_boolean G_CheckDemoStatus(void)
         *demo_p++ = DEMOMARKER;
         M_WriteFile(demoname, demobuffer, (int)(demo_p - demobuffer));
         Z_Free(demobuffer);
-        demorecording = false;
+        demorecording = doom_false;
         //I_Error("Error: Demo %s recorded", demoname);
         
         doom_strcpy(error_buf, "Error: Demo ");
@@ -13694,7 +13691,7 @@ doom_boolean G_CheckDemoStatus(void)
         I_Error(error_buf);
     }
 
-    return false;
+    return doom_false;
 }
 #define noterased viewwindowx
 
@@ -13711,7 +13708,7 @@ void HUlib_clearTextLine(hu_textline_t* t)
 {
     t->len = 0;
     t->l[0] = 0;
-    t->needsupdate = true;
+    t->needsupdate = doom_true;
 }
 
 
@@ -13728,25 +13725,25 @@ void HUlib_initTextLine(hu_textline_t* t, int x, int y, patch_t** f, int sc)
 doom_boolean HUlib_addCharToTextLine(hu_textline_t* t, char ch)
 {
     if (t->len == HU_MAXLINELENGTH)
-        return false;
+        return doom_false;
     else
     {
         t->l[t->len++] = ch;
         t->l[t->len] = 0;
         t->needsupdate = 4;
-        return true;
+        return doom_true;
     }
 }
 
 
 doom_boolean HUlib_delCharFromTextLine(hu_textline_t* t)
 {
-    if (!t->len) return false;
+    if (!t->len) return doom_false;
     else
     {
         t->l[--t->len] = 0;
         t->needsupdate = 4;
-        return true;
+        return doom_true;
     }
 }
 
@@ -13796,7 +13793,7 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     int lh;
     int y;
     int yoffset;
-    static doom_boolean lastautomapactive = true;
+    static doom_boolean lastautomapactive = doom_true;
 
     // Only erases when NOT in automap and the screen is reduced,
     // and the text must either need updating or refreshing
@@ -13836,7 +13833,7 @@ void HUlib_initSText(hu_stext_t* s,
 
     s->h = h;
     s->on = on;
-    s->laston = true;
+    s->laston = doom_true;
     s->cl = 0;
     for (i = 0; i < h; i++)
         HUlib_initTextLine(&s->l[i],
@@ -13891,7 +13888,7 @@ void HUlib_drawSText(hu_stext_t* s)
         l = &s->l[idx];
 
         // need a decision made here on whether to skip the draw
-        HUlib_drawTextLine(l, false); // no cursor, please
+        HUlib_drawTextLine(l, doom_false); // no cursor, please
     }
 }
 
@@ -13919,7 +13916,7 @@ void HUlib_initIText(hu_itext_t* it,
 {
     it->lm = 0; // default left margin is start of text
     it->on = on;
-    it->laston = true;
+    it->laston = doom_true;
     HUlib_initTextLine(&it->l, x, y, font, startchar);
 }
 
@@ -13956,7 +13953,7 @@ void HUlib_addPrefixToIText(hu_itext_t* it, char* str)
 
 
 // wrapper function for handling general keyed input.
-// returns true if it ate the key
+// returns doom_true if it ate the key
 doom_boolean HUlib_keyInIText(hu_itext_t* it, unsigned char ch)
 {
     if (ch >= ' ' && ch <= '_')
@@ -13966,9 +13963,9 @@ doom_boolean HUlib_keyInIText(hu_itext_t* it, unsigned char ch)
             HUlib_delCharFromIText(it);
         else
             if (ch != KEY_ENTER)
-                return false; // did not eat key
+                return doom_false; // did not eat key
 
-    return true; // ate the key
+    return doom_true; // ate the key
 }
 
 
@@ -13978,7 +13975,7 @@ void HUlib_drawIText(hu_itext_t* it)
 
     if (!*it->on)
         return;
-    HUlib_drawTextLine(l, true); // draw the line w/ cursor
+    HUlib_drawTextLine(l, doom_true); // draw the line w/ cursor
 }
 
 
@@ -14004,41 +14001,41 @@ void HUlib_eraseIText(hu_itext_t* it)
 #define QUEUESIZE 128
 
 
-static player_t* plr;
+//static player_t* plr;
 static hu_textline_t w_title;
 static hu_itext_t w_chat;
-static doom_boolean always_off = false;
+static doom_boolean always_off = doom_false;
 static char chat_dest[MAXPLAYERS];
 static hu_itext_t w_inputbuffer[MAXPLAYERS];
 static doom_boolean message_on;
 static doom_boolean message_nottobefuckedwith;
 static hu_stext_t w_message;
 static int message_counter;
-static doom_boolean headsupactive = false;
+static doom_boolean headsupactive = doom_false;
 static char chatchars[QUEUESIZE];
 static int head = 0;
 static int tail = 0;
 
 char* chat_macros[] =
 {
-    HUSTR_CHATMACRO0,
-    HUSTR_CHATMACRO1,
-    HUSTR_CHATMACRO2,
-    HUSTR_CHATMACRO3,
-    HUSTR_CHATMACRO4,
-    HUSTR_CHATMACRO5,
-    HUSTR_CHATMACRO6,
-    HUSTR_CHATMACRO7,
-    HUSTR_CHATMACRO8,
-    HUSTR_CHATMACRO9
+    (char*)HUSTR_CHATMACRO0,
+    (char*)HUSTR_CHATMACRO1,
+    (char*)HUSTR_CHATMACRO2,
+    (char*)HUSTR_CHATMACRO3,
+    (char*)HUSTR_CHATMACRO4,
+    (char*)HUSTR_CHATMACRO5,
+    (char*)HUSTR_CHATMACRO6,
+    (char*)HUSTR_CHATMACRO7,
+    (char*)HUSTR_CHATMACRO8,
+    (char*)HUSTR_CHATMACRO9
 };
 
 char* player_names[] =
 {
-    HUSTR_PLRGREEN,
-    HUSTR_PLRINDIGO,
-    HUSTR_PLRBROWN,
-    HUSTR_PLRRED
+    (char*)HUSTR_PLRGREEN,
+    (char*)HUSTR_PLRINDIGO,
+    (char*)HUSTR_PLRBROWN,
+    (char*)HUSTR_PLRRED
 };
 
 const char* shiftxform;
@@ -14158,171 +14155,171 @@ extern doom_boolean automapactive;
 char* mapnames[] = // DOOM shareware/registered/retail (Ultimate) names.
 {
 
-    HUSTR_E1M1,
-    HUSTR_E1M2,
-    HUSTR_E1M3,
-    HUSTR_E1M4,
-    HUSTR_E1M5,
-    HUSTR_E1M6,
-    HUSTR_E1M7,
-    HUSTR_E1M8,
-    HUSTR_E1M9,
+    (char*)HUSTR_E1M1,
+    (char*)HUSTR_E1M2,
+    (char*)HUSTR_E1M3,
+    (char*)HUSTR_E1M4,
+    (char*)HUSTR_E1M5,
+    (char*)HUSTR_E1M6,
+    (char*)HUSTR_E1M7,
+    (char*)HUSTR_E1M8,
+    (char*)HUSTR_E1M9,
 
-    HUSTR_E2M1,
-    HUSTR_E2M2,
-    HUSTR_E2M3,
-    HUSTR_E2M4,
-    HUSTR_E2M5,
-    HUSTR_E2M6,
-    HUSTR_E2M7,
-    HUSTR_E2M8,
-    HUSTR_E2M9,
+    (char*)HUSTR_E2M1,
+    (char*)HUSTR_E2M2,
+    (char*)HUSTR_E2M3,
+    (char*)HUSTR_E2M4,
+    (char*)HUSTR_E2M5,
+    (char*)HUSTR_E2M6,
+    (char*)HUSTR_E2M7,
+    (char*)HUSTR_E2M8,
+    (char*)HUSTR_E2M9,
 
-    HUSTR_E3M1,
-    HUSTR_E3M2,
-    HUSTR_E3M3,
-    HUSTR_E3M4,
-    HUSTR_E3M5,
-    HUSTR_E3M6,
-    HUSTR_E3M7,
-    HUSTR_E3M8,
-    HUSTR_E3M9,
+    (char*)HUSTR_E3M1,
+    (char*)HUSTR_E3M2,
+    (char*)HUSTR_E3M3,
+    (char*)HUSTR_E3M4,
+    (char*)HUSTR_E3M5,
+    (char*)HUSTR_E3M6,
+    (char*)HUSTR_E3M7,
+    (char*)HUSTR_E3M8,
+    (char*)HUSTR_E3M9,
 
-    HUSTR_E4M1,
-    HUSTR_E4M2,
-    HUSTR_E4M3,
-    HUSTR_E4M4,
-    HUSTR_E4M5,
-    HUSTR_E4M6,
-    HUSTR_E4M7,
-    HUSTR_E4M8,
-    HUSTR_E4M9,
+    (char*)HUSTR_E4M1,
+    (char*)HUSTR_E4M2,
+    (char*)HUSTR_E4M3,
+    (char*)HUSTR_E4M4,
+    (char*)HUSTR_E4M5,
+    (char*)HUSTR_E4M6,
+    (char*)HUSTR_E4M7,
+    (char*)HUSTR_E4M8,
+    (char*)HUSTR_E4M9,
 
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL",
-    "NEWLEVEL"
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL",
+    (char*)"NEWLEVEL"
 };
 
 char* mapnames2[] = // DOOM 2 map names.
 {
-    HUSTR_1,
-    HUSTR_2,
-    HUSTR_3,
-    HUSTR_4,
-    HUSTR_5,
-    HUSTR_6,
-    HUSTR_7,
-    HUSTR_8,
-    HUSTR_9,
-    HUSTR_10,
-    HUSTR_11,
+    (char*)HUSTR_1,
+    (char*)HUSTR_2,
+    (char*)HUSTR_3,
+    (char*)HUSTR_4,
+    (char*)HUSTR_5,
+    (char*)HUSTR_6,
+    (char*)HUSTR_7,
+    (char*)HUSTR_8,
+    (char*)HUSTR_9,
+    (char*)HUSTR_10,
+    (char*)HUSTR_11,
 
-    HUSTR_12,
-    HUSTR_13,
-    HUSTR_14,
-    HUSTR_15,
-    HUSTR_16,
-    HUSTR_17,
-    HUSTR_18,
-    HUSTR_19,
-    HUSTR_20,
+    (char*)HUSTR_12,
+    (char*)HUSTR_13,
+    (char*)HUSTR_14,
+    (char*)HUSTR_15,
+    (char*)HUSTR_16,
+    (char*)HUSTR_17,
+    (char*)HUSTR_18,
+    (char*)HUSTR_19,
+    (char*)HUSTR_20,
 
-    HUSTR_21,
-    HUSTR_22,
-    HUSTR_23,
-    HUSTR_24,
-    HUSTR_25,
-    HUSTR_26,
-    HUSTR_27,
-    HUSTR_28,
-    HUSTR_29,
-    HUSTR_30,
-    HUSTR_31,
-    HUSTR_32
+    (char*)HUSTR_21,
+    (char*)HUSTR_22,
+    (char*)HUSTR_23,
+    (char*)HUSTR_24,
+    (char*)HUSTR_25,
+    (char*)HUSTR_26,
+    (char*)HUSTR_27,
+    (char*)HUSTR_28,
+    (char*)HUSTR_29,
+    (char*)HUSTR_30,
+    (char*)HUSTR_31,
+    (char*)HUSTR_32
 };
 
 
 char* mapnamesp[] = // Plutonia WAD map names.
 {
-    PHUSTR_1,
-    PHUSTR_2,
-    PHUSTR_3,
-    PHUSTR_4,
-    PHUSTR_5,
-    PHUSTR_6,
-    PHUSTR_7,
-    PHUSTR_8,
-    PHUSTR_9,
-    PHUSTR_10,
-    PHUSTR_11,
+    (char*)PHUSTR_1,
+    (char*)PHUSTR_2,
+    (char*)PHUSTR_3,
+    (char*)PHUSTR_4,
+    (char*)PHUSTR_5,
+    (char*)PHUSTR_6,
+    (char*)PHUSTR_7,
+    (char*)PHUSTR_8,
+    (char*)PHUSTR_9,
+    (char*)PHUSTR_10,
+    (char*)PHUSTR_11,
 
-    PHUSTR_12,
-    PHUSTR_13,
-    PHUSTR_14,
-    PHUSTR_15,
-    PHUSTR_16,
-    PHUSTR_17,
-    PHUSTR_18,
-    PHUSTR_19,
-    PHUSTR_20,
+    (char*)PHUSTR_12,
+    (char*)PHUSTR_13,
+    (char*)PHUSTR_14,
+    (char*)PHUSTR_15,
+    (char*)PHUSTR_16,
+    (char*)PHUSTR_17,
+    (char*)PHUSTR_18,
+    (char*)PHUSTR_19,
+    (char*)PHUSTR_20,
 
-    PHUSTR_21,
-    PHUSTR_22,
-    PHUSTR_23,
-    PHUSTR_24,
-    PHUSTR_25,
-    PHUSTR_26,
-    PHUSTR_27,
-    PHUSTR_28,
-    PHUSTR_29,
-    PHUSTR_30,
-    PHUSTR_31,
-    PHUSTR_32
+    (char*)PHUSTR_21,
+    (char*)PHUSTR_22,
+    (char*)PHUSTR_23,
+    (char*)PHUSTR_24,
+    (char*)PHUSTR_25,
+    (char*)PHUSTR_26,
+    (char*)PHUSTR_27,
+    (char*)PHUSTR_28,
+    (char*)PHUSTR_29,
+    (char*)PHUSTR_30,
+    (char*)PHUSTR_31,
+    (char*)PHUSTR_32
 };
 
 
 char* mapnamest[] = // TNT WAD map names.
 {
-    THUSTR_1,
-    THUSTR_2,
-    THUSTR_3,
-    THUSTR_4,
-    THUSTR_5,
-    THUSTR_6,
-    THUSTR_7,
-    THUSTR_8,
-    THUSTR_9,
-    THUSTR_10,
-    THUSTR_11,
+    (char*)THUSTR_1,
+    (char*)THUSTR_2,
+    (char*)THUSTR_3,
+    (char*)THUSTR_4,
+    (char*)THUSTR_5,
+    (char*)THUSTR_6,
+    (char*)THUSTR_7,
+    (char*)THUSTR_8,
+    (char*)THUSTR_9,
+    (char*)THUSTR_10,
+    (char*)THUSTR_11,
 
-    THUSTR_12,
-    THUSTR_13,
-    THUSTR_14,
-    THUSTR_15,
-    THUSTR_16,
-    THUSTR_17,
-    THUSTR_18,
-    THUSTR_19,
-    THUSTR_20,
+    (char*)THUSTR_12,
+    (char*)THUSTR_13,
+    (char*)THUSTR_14,
+    (char*)THUSTR_15,
+    (char*)THUSTR_16,
+    (char*)THUSTR_17,
+    (char*)THUSTR_18,
+    (char*)THUSTR_19,
+    (char*)THUSTR_20,
 
-    THUSTR_21,
-    THUSTR_22,
-    THUSTR_23,
-    THUSTR_24,
-    THUSTR_25,
-    THUSTR_26,
-    THUSTR_27,
-    THUSTR_28,
-    THUSTR_29,
-    THUSTR_30,
-    THUSTR_31,
-    THUSTR_32
+    (char*)THUSTR_21,
+    (char*)THUSTR_22,
+    (char*)THUSTR_23,
+    (char*)THUSTR_24,
+    (char*)THUSTR_25,
+    (char*)THUSTR_26,
+    (char*)THUSTR_27,
+    (char*)THUSTR_28,
+    (char*)THUSTR_29,
+    (char*)THUSTR_30,
+    (char*)THUSTR_31,
+    (char*)THUSTR_32
 };
 
 char ForeignTranslation(unsigned char ch)
@@ -14358,7 +14355,7 @@ void HU_Init(void)
 
 void HU_Stop(void)
 {
-    headsupactive = false;
+    headsupactive = doom_false;
 }
 
 void HU_Start(void)
@@ -14370,10 +14367,10 @@ void HU_Start(void)
         HU_Stop();
 
     plr = &players[consoleplayer];
-    message_on = false;
-    message_dontfuckwithme = false;
-    message_nottobefuckedwith = false;
-    chat_on = false;
+    message_on = doom_false;
+    message_dontfuckwithme = doom_false;
+    message_nottobefuckedwith = doom_false;
+    chat_on = doom_false;
 
     // create the message widget
     HUlib_initSText(&w_message,
@@ -14423,7 +14420,7 @@ void HU_Start(void)
     for (i = 0; i < MAXPLAYERS; i++)
         HUlib_initIText(&w_inputbuffer[i], 0, 0, 0, 0, &always_off);
 
-    headsupactive = true;
+    headsupactive = doom_true;
 }
 
 void HU_Drawer(void)
@@ -14431,7 +14428,7 @@ void HU_Drawer(void)
     HUlib_drawSText(&w_message);
     HUlib_drawIText(&w_chat);
     if (automapactive)
-        HUlib_drawTextLine(&w_title, false);
+        HUlib_drawTextLine(&w_title, doom_false);
 }
 
 void HU_Erase(void)
@@ -14449,8 +14446,8 @@ void HU_Ticker(void)
     // tick down message counter if message is up
     if (message_counter && !--message_counter)
     {
-        message_on = false;
-        message_nottobefuckedwith = false;
+        message_on = doom_false;
+        message_nottobefuckedwith = doom_false;
     }
 
     if (showMessages || message_dontfuckwithme)
@@ -14462,13 +14459,13 @@ void HU_Ticker(void)
         {
             HUlib_addMessageToSText(&w_message, 0, plr->message);
             plr->message = 0;
-            message_on = true;
+            message_on = doom_true;
             message_counter = HU_MSGTIMEOUT;
             message_nottobefuckedwith = message_dontfuckwithme;
             message_dontfuckwithme = 0;
         }
 
-    } // else message_on = false;
+    } // else message_on = doom_false;
 
     // check for incoming chat characters
     if (netgame)
@@ -14497,8 +14494,8 @@ void HU_Ticker(void)
                                                     player_names[i],
                                                     w_inputbuffer[i].l.l);
 
-                            message_nottobefuckedwith = true;
-                            message_on = true;
+                            message_nottobefuckedwith = doom_true;
+                            message_on = doom_true;
                             message_counter = HU_MSGTIMEOUT;
                             if (gamemode == commercial)
                                 S_StartSound(0, sfx_radio);
@@ -14518,7 +14515,7 @@ void HU_queueChatChar(char c)
 {
     if (((head + 1) & (QUEUESIZE - 1)) == tail)
     {
-        plr->message = HUSTR_MSGU;
+        plr->message = (char*)HUSTR_MSGU;
     }
     else
     {
@@ -14549,9 +14546,9 @@ doom_boolean HU_Responder(event_t* ev)
 
     static char lastmessage[HU_MAXLINELENGTH + 1];
     char* macromessage;
-    doom_boolean eatkey = false;
-    static doom_boolean shiftdown = false;
-    static doom_boolean altdown = false;
+    doom_boolean eatkey = doom_false;
+    static doom_boolean shiftdown = doom_false;
+    static doom_boolean altdown = doom_false;
     unsigned char c;
     int i;
     int numplayers;
@@ -14573,28 +14570,28 @@ doom_boolean HU_Responder(event_t* ev)
     if (ev->data1 == KEY_RSHIFT)
     {
         shiftdown = ev->type == ev_keydown;
-        return false;
+        return doom_false;
     }
     else if (ev->data1 == KEY_RALT || ev->data1 == KEY_LALT)
     {
         altdown = ev->type == ev_keydown;
-        return false;
+        return doom_false;
     }
 
     if (ev->type != ev_keydown)
-        return false;
+        return doom_false;
 
     if (!chat_on)
     {
         if (ev->data1 == HU_MSGREFRESH)
         {
-            message_on = true;
+            message_on = doom_true;
             message_counter = HU_MSGTIMEOUT;
-            eatkey = true;
+            eatkey = doom_true;
         }
         else if (netgame && ev->data1 == HU_INPUTTOGGLE)
         {
-            eatkey = chat_on = true;
+            eatkey = chat_on = doom_true;
             HUlib_resetIText(&w_chat);
             HU_queueChatChar(HU_BROADCAST);
         }
@@ -14606,7 +14603,7 @@ doom_boolean HU_Responder(event_t* ev)
                 {
                     if (playeringame[i] && i != consoleplayer)
                     {
-                        eatkey = chat_on = true;
+                        eatkey = chat_on = doom_true;
                         HUlib_resetIText(&w_chat);
                         HU_queueChatChar(i + 1);
                         break;
@@ -14615,15 +14612,15 @@ doom_boolean HU_Responder(event_t* ev)
                     {
                         num_nobrainers++;
                         if (num_nobrainers < 3)
-                            plr->message = HUSTR_TALKTOSELF1;
+                            plr->message = (char*)HUSTR_TALKTOSELF1;
                         else if (num_nobrainers < 6)
-                            plr->message = HUSTR_TALKTOSELF2;
+                            plr->message = (char*)HUSTR_TALKTOSELF2;
                         else if (num_nobrainers < 9)
-                            plr->message = HUSTR_TALKTOSELF3;
+                            plr->message = (char*)HUSTR_TALKTOSELF3;
                         else if (num_nobrainers < 32)
-                            plr->message = HUSTR_TALKTOSELF4;
+                            plr->message = (char*)HUSTR_TALKTOSELF4;
                         else
-                            plr->message = HUSTR_TALKTOSELF5;
+                            plr->message = (char*)HUSTR_TALKTOSELF5;
                     }
                 }
             }
@@ -14637,7 +14634,7 @@ doom_boolean HU_Responder(event_t* ev)
         {
             c = c - '0';
             if (c > 9)
-                return false;
+                return doom_false;
             macromessage = chat_macros[c];
 
             // kill last message with a '\n'
@@ -14649,10 +14646,10 @@ doom_boolean HU_Responder(event_t* ev)
             HU_queueChatChar(KEY_ENTER);
 
             // leave chat mode and notify that it was sent
-            chat_on = false;
+            chat_on = doom_false;
             doom_strcpy(lastmessage, chat_macros[c]);
             plr->message = lastmessage;
-            eatkey = true;
+            eatkey = doom_true;
         }
         else
         {
@@ -14667,7 +14664,7 @@ doom_boolean HU_Responder(event_t* ev)
             }
             if (c == KEY_ENTER)
             {
-                chat_on = false;
+                chat_on = doom_false;
                 if (w_chat.l.len)
                 {
                     doom_strcpy(lastmessage, w_chat.l.l);
@@ -14675,7 +14672,7 @@ doom_boolean HU_Responder(event_t* ev)
                 }
             }
             else if (c == KEY_ESCAPE)
-                chat_on = false;
+                chat_on = doom_false;
         }
     }
 
@@ -14752,7 +14749,6 @@ void (*netsend) (void);
 void NetSend(void);
 doom_boolean NetListen(void);
 
-
 //
 // UDPsocket
 //
@@ -14791,7 +14787,7 @@ void BindToLocalPort(SOCKET s, int port)
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = port;
 
-    v = bind(s, (void*)&address, sizeof(address));
+    v = bind(s, (const sockaddr*)&address, sizeof(address));
     if (v == -1)
     {
         //I_Error("Error: BindToPort: bind: %s", strerror(errno));
@@ -14831,7 +14827,7 @@ void PacketSend(void)
 
     //doom_print ("sending %i\n",gametic);                
     c = sendto(sendsocket, (const char*)&sw, doomcom->datalength
-               , 0, (void*)&sendaddress[doomcom->remotenode]
+               , 0, (const sockaddr*)&sendaddress[doomcom->remotenode]
                , sizeof(sendaddress[doomcom->remotenode]));
 #endif
 }
@@ -14954,7 +14950,7 @@ int GetLocalAddress(void)
     hostentry = gethostbyname(hostname);
     if (!hostentry)
     {
-        I_Error("Error: GetLocalAddress : gethostbyname: couldn't get local host");
+        I_Error((char*)"Error: GetLocalAddress : gethostbyname: couldn't get local host");
     }
 
     return *(int*)hostentry->h_addr_list[0];
@@ -14976,18 +14972,18 @@ void I_InitNetwork(void)
 
     u_long trueval = 1;
 #else
-    doom_boolean trueval = true;
+    doom_boolean trueval = doom_true;
 #endif
 #endif
     int i;
     int p;
     struct hostent* hostentry;        // host information entry
 
-    doomcom = doom_malloc(sizeof(*doomcom));
+    doomcom = (doomcom_t*)doom_malloc(sizeof(*doomcom));
     doom_memset(doomcom, 0, sizeof(*doomcom));
 
     // set up for network
-    i = M_CheckParm("-dup");
+    i = M_CheckParm((char*)"-dup");
     if (i && i < myargc - 1)
     {
         doomcom->ticdup = myargv[i + 1][0] - '0';
@@ -14999,12 +14995,12 @@ void I_InitNetwork(void)
     else
         doomcom->ticdup = 1;
 
-    if (M_CheckParm("-extratic"))
+    if (M_CheckParm((char*)"-extratic"))
         doomcom->extratics = 1;
     else
         doomcom->extratics = 0;
 
-    p = M_CheckParm("-port");
+    p = M_CheckParm((char*)"-port");
     if (p && p < myargc - 1)
     {
         DOOMPORT = doom_atoi(myargv[p + 1]);
@@ -15014,7 +15010,7 @@ void I_InitNetwork(void)
         doom_print("\n");
     }
 
-    p = M_CheckParm("-sendport");
+    p = M_CheckParm((char*)"-sendport");
     if (p && p < myargc - 1)
     {
         DOOMPORT_SEND = doom_atoi(myargv[p + 1]);
@@ -15026,14 +15022,14 @@ void I_InitNetwork(void)
 
     // parse network game options,
     //  -net <consoleplayer> <host> <host> ...
-    i = M_CheckParm("-net");
+    i = M_CheckParm((char*)"-net");
     if (!i)
     {
         // single player game
-        netgame = false;
+        netgame = doom_false;
         doomcom->id = DOOMCOM_ID;
         doomcom->numplayers = doomcom->numnodes = 1;
-        doomcom->deathmatch = false;
+        doomcom->deathmatch = doom_false;
         doomcom->consoleplayer = 0;
         return;
     }
@@ -15041,7 +15037,7 @@ void I_InitNetwork(void)
 #if defined(I_NET_ENABLED)
     netsend = PacketSend;
     netget = PacketGet;
-    netgame = true;
+    netgame = doom_true;
 
     // parse player number and host list
     doomcom->consoleplayer = myargv[i + 1][0] - '1';
@@ -15173,8 +15169,8 @@ static unsigned char* mus_data = 0;
 static mus_header_t mus_header;
 static int mus_offset = 0;
 static int mus_delay = 0;
-static doom_boolean mus_loop = false;
-static doom_boolean mus_playing = false;
+static doom_boolean mus_loop = doom_false;
+static doom_boolean mus_playing = doom_false;
 static int mus_volume = 127;
 static int mus_channel_volumes[16] = { 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127 };
 
@@ -15275,7 +15271,7 @@ void* getsfx(char* sfxname, int* len)
     //  variable. Instead, we will use a
     //  default sound for replacement.
     if (W_CheckNumForName(name) == -1)
-        sfxlump = W_GetNumForName("dspistol");
+        sfxlump = W_GetNumForName((char*)"dspistol");
     else
         sfxlump = W_GetNumForName(name);
 
@@ -15412,10 +15408,10 @@ int addsfx(int sfxid, int volume, int step, int seperation)
 
     // Sanity check, clamp volume.
     if (rightvol < 0 || rightvol > 127)
-        I_Error("Error: rightvol out of bounds");
+        I_Error((char*)"Error: rightvol out of bounds");
 
     if (leftvol < 0 || leftvol > 127)
-        I_Error("Error: leftvol out of bounds");
+        I_Error((char*)"Error: leftvol out of bounds");
 
     // Get the proper lookup table piece
     //  for this volume level???
@@ -15829,9 +15825,9 @@ void I_UpdateSound(void)
 
     // Mix current sound data.
     // Data, from raw sound, for right and left.
-    register unsigned int sample;
-    register int dl;
-    register int dr;
+    unsigned int sample;
+    int dl;
+    int dr;
 
     // Pointers in global mixbuffer, left, right, end.
     signed short* leftout;
@@ -16030,20 +16026,20 @@ void I_PlaySong(int handle, int looping)
 {
     musicdies = gametic + TICRATE * 30;
 
-    mus_loop = looping ? true : false;
-    mus_playing = true;
+    mus_loop = looping ? doom_true : doom_false;
+    mus_playing = doom_true;
 }
 
 
 void I_PauseSong(int handle)
 {
-    mus_playing = false;
+    mus_playing = doom_false;
 }
 
 
 void I_ResumeSong(int handle)
 {
-    if (mus_data) mus_playing = true;
+    if (mus_data) mus_playing = doom_true;
 }
 
 
@@ -16059,7 +16055,7 @@ void I_StopSong(int handle)
     mus_data = 0;
     mus_delay = 0;
     mus_offset = 0;
-    mus_playing = false;
+    mus_playing = doom_false;
 
     reset_all_channels();
 }
@@ -16079,7 +16075,7 @@ int I_RegisterSong(void* data)
     mus_data = (unsigned char*)data;
     mus_delay = 0;
     mus_offset = mus_header.scoreStart;
-    mus_playing = false;
+    mus_playing = doom_false;
 
     return 1;
 }
@@ -16216,7 +16212,7 @@ unsigned long I_TickSong()
                 }
                 else
                 {
-                    mus_playing = false;
+                    mus_playing = doom_false;
                     return 0;
                 }
             }
@@ -16382,7 +16378,7 @@ int doPointerWarp = POINTER_WARP_COUNTDOWN;
 
 unsigned char screen_palette[256 * 3];
 
-doom_boolean mousemoved = false;
+doom_boolean mousemoved = doom_false;
 doom_boolean shmFinished;
 
 
@@ -16479,97 +16475,97 @@ void I_InitGraphics(void)
     screens[0] = (unsigned char*)doom_malloc(SCREENWIDTH * SCREENHEIGHT);
 }
 char* sprnames[NUMSPRITES + 1] = {
-    "TROO","SHTG","PUNG","PISG","PISF","SHTF","SHT2","CHGG","CHGF","MISG",
-    "MISF","SAWG","PLSG","PLSF","BFGG","BFGF","BLUD","PUFF","BAL1","BAL2",
-    "PLSS","PLSE","MISL","BFS1","BFE1","BFE2","TFOG","IFOG","PLAY","POSS",
-    "SPOS","VILE","FIRE","FATB","FBXP","SKEL","MANF","FATT","CPOS","SARG",
-    "HEAD","BAL7","BOSS","BOS2","SKUL","SPID","BSPI","APLS","APBX","CYBR",
-    "PAIN","SSWV","KEEN","BBRN","BOSF","ARM1","ARM2","BAR1","BEXP","FCAN",
-    "BON1","BON2","BKEY","RKEY","YKEY","BSKU","RSKU","YSKU","STIM","MEDI",
-    "SOUL","PINV","PSTR","PINS","MEGA","SUIT","PMAP","PVIS","CLIP","AMMO",
-    "ROCK","BROK","CELL","CELP","SHEL","SBOX","BPAK","BFUG","MGUN","CSAW",
-    "LAUN","PLAS","SHOT","SGN2","COLU","SMT2","GOR1","POL2","POL5","POL4",
-    "POL3","POL1","POL6","GOR2","GOR3","GOR4","GOR5","SMIT","COL1","COL2",
-    "COL3","COL4","CAND","CBRA","COL6","TRE1","TRE2","ELEC","CEYE","FSKU",
-    "COL5","TBLU","TGRN","TRED","SMBT","SMGT","SMRT","HDB1","HDB2","HDB3",
-    "HDB4","HDB5","HDB6","POB1","POB2","BRS1","TLMP","TLP2",0
+    (char*)"TROO",(char*)"SHTG",(char*)"PUNG",(char*)"PISG",(char*)"PISF",(char*)"SHTF",(char*)"SHT2",(char*)"CHGG",(char*)"CHGF",(char*)"MISG",
+    (char*)"MISF",(char*)"SAWG",(char*)"PLSG",(char*)"PLSF",(char*)"BFGG",(char*)"BFGF",(char*)"BLUD",(char*)"PUFF",(char*)"BAL1",(char*)"BAL2",
+    (char*)"PLSS",(char*)"PLSE",(char*)"MISL",(char*)"BFS1",(char*)"BFE1",(char*)"BFE2",(char*)"TFOG",(char*)"IFOG",(char*)"PLAY",(char*)"POSS",
+    (char*)"SPOS",(char*)"VILE",(char*)"FIRE",(char*)"FATB",(char*)"FBXP",(char*)"SKEL",(char*)"MANF",(char*)"FATT",(char*)"CPOS",(char*)"SARG",
+    (char*)"HEAD",(char*)"BAL7",(char*)"BOSS",(char*)"BOS2",(char*)"SKUL",(char*)"SPID",(char*)"BSPI",(char*)"APLS",(char*)"APBX",(char*)"CYBR",
+    (char*)"PAIN",(char*)"SSWV",(char*)"KEEN",(char*)"BBRN",(char*)"BOSF",(char*)"ARM1",(char*)"ARM2",(char*)"BAR1",(char*)"BEXP",(char*)"FCAN",
+    (char*)"BON1",(char*)"BON2",(char*)"BKEY",(char*)"RKEY",(char*)"YKEY",(char*)"BSKU",(char*)"RSKU",(char*)"YSKU",(char*)"STIM",(char*)"MEDI",
+    (char*)"SOUL",(char*)"PINV",(char*)"PSTR",(char*)"PINS",(char*)"MEGA",(char*)"SUIT",(char*)"PMAP",(char*)"PVIS",(char*)"CLIP",(char*)"AMMO",
+    (char*)"ROCK",(char*)"BROK",(char*)"CELL",(char*)"CELP",(char*)"SHEL",(char*)"SBOX",(char*)"BPAK",(char*)"BFUG",(char*)"MGUN",(char*)"CSAW",
+    (char*)"LAUN",(char*)"PLAS",(char*)"SHOT",(char*)"SGN2",(char*)"COLU",(char*)"SMT2",(char*)"GOR1",(char*)"POL2",(char*)"POL5",(char*)"POL4",
+    (char*)"POL3",(char*)"POL1",(char*)"POL6",(char*)"GOR2",(char*)"GOR3",(char*)"GOR4",(char*)"GOR5",(char*)"SMIT",(char*)"COL1",(char*)"COL2",
+    (char*)"COL3",(char*)"COL4",(char*)"CAND",(char*)"CBRA",(char*)"COL6",(char*)"TRE1",(char*)"TRE2",(char*)"ELEC",(char*)"CEYE",(char*)"FSKU",
+    (char*)"COL5",(char*)"TBLU",(char*)"TGRN",(char*)"TRED",(char*)"SMBT",(char*)"SMGT",(char*)"SMRT",(char*)"HDB1",(char*)"HDB2",(char*)"HDB3",
+    (char*)"HDB4",(char*)"HDB5",(char*)"HDB6",(char*)"POB1",(char*)"POB2",(char*)"BRS1",(char*)"TLMP",(char*)"TLP2",0
 };
 
 
-void A_Light0();
-void A_WeaponReady();
-void A_Lower();
-void A_Raise();
-void A_Punch();
-void A_ReFire();
-void A_FirePistol();
-void A_Light1();
-void A_FireShotgun();
-void A_Light2();
-void A_FireShotgun2();
-void A_CheckReload();
-void A_OpenShotgun2();
-void A_LoadShotgun2();
-void A_CloseShotgun2();
-void A_FireCGun();
-void A_GunFlash();
-void A_FireMissile();
-void A_Saw();
-void A_FirePlasma();
-void A_BFGsound();
-void A_FireBFG();
-void A_BFGSpray();
-void A_Explode();
-void A_Pain();
-void A_PlayerScream();
-void A_Fall();
-void A_XScream();
-void A_Look();
-void A_Chase();
-void A_FaceTarget();
-void A_PosAttack();
-void A_Scream();
-void A_SPosAttack();
-void A_VileChase();
-void A_VileStart();
-void A_VileTarget();
-void A_VileAttack();
-void A_StartFire();
-void A_Fire();
-void A_FireCrackle();
-void A_Tracer();
-void A_SkelWhoosh();
-void A_SkelFist();
-void A_SkelMissile();
-void A_FatRaise();
-void A_FatAttack1();
-void A_FatAttack2();
-void A_FatAttack3();
-void A_BossDeath();
-void A_CPosAttack();
-void A_CPosRefire();
-void A_TroopAttack();
-void A_SargAttack();
-void A_HeadAttack();
-void A_BruisAttack();
-void A_SkullAttack();
-void A_Metal();
-void A_SpidRefire();
-void A_BabyMetal();
-void A_BspiAttack();
-void A_Hoof();
-void A_CyberAttack();
-void A_PainAttack();
-void A_PainDie();
-void A_KeenDie();
-void A_BrainPain();
-void A_BrainScream();
-void A_BrainDie();
-void A_BrainAwake();
-void A_BrainSpit();
-void A_SpawnSound();
-void A_SpawnFly();
-void A_BrainExplode();
+void A_Light0(player_t* player, pspdef_t* psp);
+void A_WeaponReady(player_t* player, pspdef_t* psp);
+void A_Lower(player_t* player, pspdef_t* psp);
+void A_Raise(player_t* player, pspdef_t* psp);
+void A_Punch(player_t* player, pspdef_t* psp);
+void A_ReFire(player_t* player, pspdef_t* psp);
+void A_FirePistol(player_t* player, pspdef_t* psp);
+void A_Light1(player_t* player, pspdef_t* psp);
+void A_FireShotgun(player_t* player, pspdef_t* psp);
+void A_Light2(player_t* player, pspdef_t* psp);
+void A_FireShotgun2(player_t* player, pspdef_t* psp);
+void A_CheckReload(player_t* player, pspdef_t* psp);
+void A_OpenShotgun2(player_t* player, pspdef_t* psp);
+void A_LoadShotgun2(player_t* player, pspdef_t* psp);
+void A_CloseShotgun2(player_t* player, pspdef_t* psp);
+void A_FireCGun(player_t* player, pspdef_t* psp);
+void A_GunFlash(player_t* player, pspdef_t* psp);
+void A_FireMissile(player_t* player, pspdef_t* psp);
+void A_Saw(player_t* player, pspdef_t* psp);
+void A_FirePlasma(player_t* player, pspdef_t* psp);
+void A_BFGsound(player_t* player, pspdef_t* psp);
+void A_FireBFG(player_t* player, pspdef_t* psp);
+void A_BFGSpray(mobj_t* mo);
+void A_Explode(mobj_t* thingy);
+void A_Pain(mobj_t* actor);
+void A_PlayerScream(mobj_t* mo);
+void A_Fall(mobj_t* actor);
+void A_XScream(mobj_t* actor);
+void A_Look(mobj_t* actor);
+void A_Chase(mobj_t* actor);
+void A_FaceTarget(mobj_t* actor);
+void A_PosAttack(mobj_t* actor);
+void A_Scream(mobj_t* actor);
+void A_SPosAttack(mobj_t* actor);
+void A_VileChase(mobj_t* actor);
+void A_VileStart(mobj_t* actor);
+void A_VileTarget(mobj_t* actor);
+void A_VileAttack(mobj_t* actor);
+void A_StartFire(mobj_t* actor);
+void A_Fire(mobj_t* actor);
+void A_FireCrackle(mobj_t* actor);
+void A_Tracer(mobj_t* actor);
+void A_SkelWhoosh(mobj_t* actor);
+void A_SkelFist(mobj_t* actor);
+void A_SkelMissile(mobj_t* actor);
+void A_FatRaise(mobj_t* actor);
+void A_FatAttack1(mobj_t* actor);
+void A_FatAttack2(mobj_t* actor);
+void A_FatAttack3(mobj_t* actor);
+void A_BossDeath(mobj_t* actor);
+void A_CPosAttack(mobj_t* actor);
+void A_CPosRefire(mobj_t* actor);
+void A_TroopAttack(mobj_t* actor);
+void A_SargAttack(mobj_t* actor);
+void A_HeadAttack(mobj_t* actor);
+void A_BruisAttack(mobj_t* actor);
+void A_SkullAttack(mobj_t* actor);
+void A_Metal(mobj_t* actor);
+void A_SpidRefire(mobj_t* actor);
+void A_BabyMetal(mobj_t* actor);
+void A_BspiAttack(mobj_t* actor);
+void A_Hoof(mobj_t* actor);
+void A_CyberAttack(mobj_t* actor);
+void A_PainAttack(mobj_t* actor);
+void A_PainDie(mobj_t* actor);
+void A_KeenDie(mobj_t* actor);
+void A_BrainPain(mobj_t* actor);
+void A_BrainScream(mobj_t* actor);
+void A_BrainDie(mobj_t* actor);
+void A_BrainAwake(mobj_t* actor);
+void A_BrainSpit(mobj_t* actor);
+void A_SpawnSound(mobj_t* actor);
+void A_SpawnFly(mobj_t* actor);
+void A_BrainExplode(mobj_t* actor);
 
 
 state_t states[NUMSTATES] = {
@@ -21229,7 +21225,7 @@ fixed_t FixedDiv2(fixed_t a, fixed_t b)
     c = ((double)a) / ((double)b) * FRACUNIT;
 
     if (c >= 2147483648.0 || c < -2147483648.0)
-        I_Error("Error: FixedDiv: divide by zero");
+        I_Error((char*)"Error: FixedDiv: divide by zero");
     return (fixed_t)c;
 }
 #define SAVESTRINGSIZE 24
@@ -21368,40 +21364,40 @@ menu_t* currentMenu;
 // This way we don't ship code with embeded graphics that come from WAD files.
 menu_custom_text_t menu_custom_texts[] =
 {
-    {"TXT_MMOV", {
-        {"M_MSENS", 0, 74, 0, 0}, // Mouse
-        {"M_MSENS", 0, 31, 83, 0}, // Mo
-        {"M_MSENS", 160, 14, 83 + 31, 0}, // v
-        {"M_MSENS", 60, 14, 83 + 31 + 14, 0}, // e
-        {"M_DETAIL", 169, 5, 83 + 31 + 14 + 14, 0}, // :
+    {(char*)"TXT_MMOV", {
+        {(char*)"M_MSENS", 0, 74, 0, 0}, // Mouse
+        {(char*)"M_MSENS", 0, 31, 83, 0}, // Mo
+        {(char*)"M_MSENS", 160, 14, 83 + 31, 0}, // v
+        {(char*)"M_MSENS", 60, 14, 83 + 31 + 14, 0}, // e
+        {(char*)"M_DETAIL", 169, 5, 83 + 31 + 14 + 14, 0}, // :
         {0}
     }},
-    {"TXT_MOPT", {
-        {"M_MSENS", 0, 74, 0, 0}, // Mouse
-        {"M_OPTION", 0, 92, 74 + 9, 0}, // Options
+    {(char*)"TXT_MOPT", {
+        {(char*)"M_MSENS", 0, 74, 0, 0}, // Mouse
+        {(char*)"M_OPTION", 0, 92, 74 + 9, 0}, // Options
         {0}
     }},
-    {"TXT_CROS", {
-        {"M_SKILL", 0, 16, 0, 0}, // C
-        {"M_DETAIL", 14, 15, 16, 0}, // r
-        {"M_SKILL", 46, 30, 16 + 15, 0}, // os
-        {"M_SKILL", 62, 14, 16 + 15 + 30, 0}, // s
-        {"M_SKILL", 16, 15, 16 + 15 + 30 + 14, 0}, // h
-        {"M_DETAIL", 140, 19, 16 + 15 + 30 + 14 + 15, 0}, // ai
-        {"M_DETAIL", 14, 15, 16 + 15 + 30 + 14 + 15 + 19, 0}, // r
-        {"M_DETAIL", 169, 5, 16 + 15 + 30 + 14 + 15 + 19 + 15, 0}, // :
+    {(char*)"TXT_CROS", {
+        {(char*)"M_SKILL", 0, 16, 0, 0}, // C
+        {(char*)"M_DETAIL", 14, 15, 16, 0}, // r
+        {(char*)"M_SKILL", 46, 30, 16 + 15, 0}, // os
+        {(char*)"M_SKILL", 62, 14, 16 + 15 + 30, 0}, // s
+        {(char*)"M_SKILL", 16, 15, 16 + 15 + 30 + 14, 0}, // h
+        {(char*)"M_DETAIL", 140, 19, 16 + 15 + 30 + 14 + 15, 0}, // ai
+        {(char*)"M_DETAIL", 14, 15, 16 + 15 + 30 + 14 + 15 + 19, 0}, // r
+        {(char*)"M_DETAIL", 169, 5, 16 + 15 + 30 + 14 + 15 + 19 + 15, 0}, // :
         {0}
     }},
-    {"TXT_ARUN", {
-        {"M_SGTTL", 90, 17, 0, 0}, // A
-        {"M_GDLOW", 0, 10, 17, 3}, // l
-        {"M_GDLOW", 26, 16, 17 + 10, 3}, // 
-        {"M_DISP", 57, 30, 17 + 10 + 16, 0}, // ay
-        {"M_RDTHIS", 99, 14, 17 + 10 + 16 + 30, 0}, // s
-        {"M_RDTHIS", 0, 16, 17 + 10 + 16 + 30 + 14 + 7, 0}, // R
-        {"M_SFXVOL", 90, 15, 17 + 10 + 16 + 30 + 14 + 7 + 16, 0}, // u
-        {"M_OPTION", 62, 15, 17 + 10 + 16 + 30 + 14 + 7 + 16 + 15, 0}, // n
-        {"M_DETAIL", 169, 5, 17 + 10 + 16 + 30 + 14 + 7 + 16 + 15 + 15, 0}, // :
+    {(char*)"TXT_ARUN", {
+        {(char*)"M_SGTTL", 90, 17, 0, 0}, // A
+        {(char*)"M_GDLOW", 0, 10, 17, 3}, // l
+        {(char*)"M_GDLOW", 26, 16, 17 + 10, 3}, // 
+        {(char*)"M_DISP", 57, 30, 17 + 10 + 16, 0}, // ay
+        {(char*)"M_RDTHIS", 99, 14, 17 + 10 + 16 + 30, 0}, // s
+        {(char*)"M_RDTHIS", 0, 16, 17 + 10 + 16 + 30 + 14 + 7, 0}, // R
+        {(char*)"M_SFXVOL", 90, 15, 17 + 10 + 16 + 30 + 14 + 7 + 16, 0}, // u
+        {(char*)"M_OPTION", 62, 15, 17 + 10 + 16 + 30 + 14 + 7 + 16 + 15, 0}, // n
+        {(char*)"M_DETAIL", 169, 5, 17 + 10 + 16 + 30 + 14 + 7 + 16 + 15 + 15, 0}, // :
         {0}
     }},
 };
@@ -21975,7 +21971,7 @@ void M_DrawCustomMenuText(char* name, int x, int y)
             while (seg->lump)
             {
                 void* lump = W_CacheLumpName(seg->lump, PU_CACHE);
-                V_DrawPatchRectDirect(x + seg->offx, y, 0, lump, seg->x, seg->w);
+                V_DrawPatchRectDirect(x + seg->offx, y, 0, (patch_t*)lump, seg->x, seg->w);
                 ++seg;
             }
             break;
@@ -22030,7 +22026,7 @@ void M_DrawLoad(void)
 {
     int i;
 
-    V_DrawPatchDirect(72, 28, 0, W_CacheLumpName("M_LOADG", PU_CACHE));
+    V_DrawPatchDirect(72, 28, 0, (patch_t*)W_CacheLumpName((char*)"M_LOADG", PU_CACHE));
     for (i = 0; i < load_end; i++)
     {
         M_DrawSaveLoadBorder(LoadDef.x, LoadDef.y + LINEHEIGHT * i);
@@ -22046,15 +22042,15 @@ void M_DrawSaveLoadBorder(int x, int y)
 {
     int i;
 
-    V_DrawPatchDirect(x - 8, y + 7, 0, W_CacheLumpName("M_LSLEFT", PU_CACHE));
+    V_DrawPatchDirect(x - 8, y + 7, 0, (patch_t*)W_CacheLumpName((char*)"M_LSLEFT", PU_CACHE));
 
     for (i = 0; i < 24; i++)
     {
-        V_DrawPatchDirect(x, y + 7, 0, W_CacheLumpName("M_LSCNTR", PU_CACHE));
+        V_DrawPatchDirect(x, y + 7, 0, (patch_t*)W_CacheLumpName((char*)"M_LSCNTR", PU_CACHE));
         x += 8;
     }
 
-    V_DrawPatchDirect(x, y + 7, 0, W_CacheLumpName("M_LSRGHT", PU_CACHE));
+    V_DrawPatchDirect(x, y + 7, 0, (patch_t*)W_CacheLumpName((char*)"M_LSRGHT", PU_CACHE));
 }
 
 
@@ -22088,7 +22084,7 @@ void M_LoadGame(int choice)
 {
     if (netgame)
     {
-        M_StartMessage(LOADNET, 0, false);
+        M_StartMessage((char*)LOADNET, 0, doom_false);
         return;
     }
 
@@ -22104,7 +22100,7 @@ void M_DrawSave(void)
 {
     int i;
 
-    V_DrawPatchDirect(72, 28, 0, W_CacheLumpName("M_SAVEG", PU_CACHE));
+    V_DrawPatchDirect(72, 28, 0, (patch_t*)W_CacheLumpName((char*)"M_SAVEG", PU_CACHE));
     for (i = 0; i < load_end; i++)
     {
         M_DrawSaveLoadBorder(LoadDef.x, LoadDef.y + LINEHEIGHT * i);
@@ -22114,7 +22110,7 @@ void M_DrawSave(void)
     if (saveStringEnter)
     {
         i = M_StringWidth(savegamestrings[saveSlot]);
-        M_WriteText(LoadDef.x + i, LoadDef.y + LINEHEIGHT * saveSlot, "_");
+        M_WriteText(LoadDef.x + i, LoadDef.y + LINEHEIGHT * saveSlot, (char*)"_");
     }
 }
 
@@ -22156,7 +22152,7 @@ void M_SaveGame(int choice)
 {
     if (!usergame)
     {
-        M_StartMessage(SAVEDEAD, 0, false);
+        M_StartMessage((char*)SAVEDEAD, 0, doom_false);
         return;
     }
 
@@ -22204,7 +22200,7 @@ void M_QuickSave(void)
     doom_strcpy(tempstring, QSPROMPT_1);
     doom_concat(tempstring, savegamestrings[quickSaveSlot]);
     doom_strcpy(tempstring, QSPROMPT_2);
-    M_StartMessage(tempstring, M_QuickSaveResponse, true);
+    M_StartMessage(tempstring, M_QuickSaveResponse, doom_true);
 }
 
 
@@ -22225,20 +22221,20 @@ void M_QuickLoad(void)
 {
     if (netgame)
     {
-        M_StartMessage(QLOADNET, 0, false);
+        M_StartMessage((char*)QLOADNET, 0, doom_false);
         return;
     }
 
     if (quickSaveSlot < 0)
     {
-        M_StartMessage(QSAVESPOT, 0, false);
+        M_StartMessage((char*)QSAVESPOT, 0, doom_false);
         return;
     }
     //doom_sprintf(tempstring, QLPROMPT, savegamestrings[quickSaveSlot]);
     doom_strcpy(tempstring, QLPROMPT_1);
     doom_concat(tempstring, savegamestrings[quickSaveSlot]);
     doom_strcpy(tempstring, QLPROMPT_2);
-    M_StartMessage(tempstring, M_QuickLoadResponse, true);
+    M_StartMessage(tempstring, M_QuickLoadResponse, doom_true);
 }
 
 
@@ -22248,16 +22244,16 @@ void M_QuickLoad(void)
 //
 void M_DrawReadThis1(void)
 {
-    inhelpscreens = true;
+    inhelpscreens = doom_true;
     switch (gamemode)
     {
         case commercial:
-            V_DrawPatchDirect(0, 0, 0, W_CacheLumpName("HELP", PU_CACHE));
+            V_DrawPatchDirect(0, 0, 0, (patch_t*)W_CacheLumpName((char*)"HELP", PU_CACHE));
             break;
         case shareware:
         case registered:
         case retail:
-            V_DrawPatchDirect(0, 0, 0, W_CacheLumpName("HELP1", PU_CACHE));
+            V_DrawPatchDirect(0, 0, 0, (patch_t*)W_CacheLumpName((char*)"HELP1", PU_CACHE));
             break;
         default:
             break;
@@ -22271,17 +22267,17 @@ void M_DrawReadThis1(void)
 //
 void M_DrawReadThis2(void)
 {
-    inhelpscreens = true;
+    inhelpscreens = doom_true;
     switch (gamemode)
     {
         case retail:
         case commercial:
             // This hack keeps us from having to change menus.
-            V_DrawPatchDirect(0, 0, 0, W_CacheLumpName("CREDIT", PU_CACHE));
+            V_DrawPatchDirect(0, 0, 0, (patch_t*)W_CacheLumpName((char*)"CREDIT", PU_CACHE));
             break;
         case shareware:
         case registered:
-            V_DrawPatchDirect(0, 0, 0, W_CacheLumpName("HELP2", PU_CACHE));
+            V_DrawPatchDirect(0, 0, 0, (patch_t*)W_CacheLumpName((char*)"HELP2", PU_CACHE));
             break;
         default:
             break;
@@ -22295,7 +22291,7 @@ void M_DrawReadThis2(void)
 //
 void M_DrawSound(void)
 {
-    V_DrawPatchDirect(60, 38, 0, W_CacheLumpName("M_SVOL", PU_CACHE));
+    V_DrawPatchDirect(60, 38, 0, (patch_t*)W_CacheLumpName((char*)"M_SVOL", PU_CACHE));
 
     if (!(doom_flags & DOOM_FLAG_HIDE_SOUND_OPTIONS))
     {
@@ -22366,7 +22362,7 @@ void M_MusicVol(int choice)
 //
 void M_DrawMainMenu(void)
 {
-    V_DrawPatchDirect(94, 2, 0, W_CacheLumpName("M_DOOM", PU_CACHE));
+    V_DrawPatchDirect(94, 2, 0, (patch_t*)W_CacheLumpName((char*)"M_DOOM", PU_CACHE));
 }
 
 
@@ -22375,8 +22371,8 @@ void M_DrawMainMenu(void)
 //
 void M_DrawNewGame(void)
 {
-    V_DrawPatchDirect(96, 14, 0, W_CacheLumpName("M_NEWG", PU_CACHE));
-    V_DrawPatchDirect(54, 38, 0, W_CacheLumpName("M_SKILL", PU_CACHE));
+    V_DrawPatchDirect(96, 14, 0, (patch_t*)W_CacheLumpName((char*)"M_NEWG", PU_CACHE));
+    V_DrawPatchDirect(54, 38, 0, (patch_t*)W_CacheLumpName((char*)"M_SKILL", PU_CACHE));
 }
 
 
@@ -22384,7 +22380,7 @@ void M_NewGame(int choice)
 {
     if (netgame && !demoplayback)
     {
-        M_StartMessage(NEWGAME, 0, false);
+        M_StartMessage((char*)NEWGAME, 0, doom_false);
         return;
     }
 
@@ -22400,7 +22396,7 @@ void M_NewGame(int choice)
 //
 void M_DrawEpisode(void)
 {
-    V_DrawPatchDirect(54, 38, 0, W_CacheLumpName("M_EPISOD", PU_CACHE));
+    V_DrawPatchDirect(54, 38, 0, (patch_t*)W_CacheLumpName((char*)"M_EPISOD", PU_CACHE));
 }
 
 void M_VerifyNightmare(int ch)
@@ -22408,7 +22404,7 @@ void M_VerifyNightmare(int ch)
     if (ch != 'y')
         return;
 
-    G_DeferedInitNew(nightmare, epi + 1, 1);
+    G_DeferedInitNew((skill_t)nightmare, epi + 1, 1);
     M_ClearMenus();
 }
 
@@ -22416,11 +22412,11 @@ void M_ChooseSkill(int choice)
 {
     if (choice == nightmare)
     {
-        M_StartMessage(NIGHTMARE, M_VerifyNightmare, true);
+        M_StartMessage((char*)NIGHTMARE, M_VerifyNightmare, doom_true);
         return;
     }
 
-    G_DeferedInitNew(choice, epi + 1, 1);
+    G_DeferedInitNew((skill_t)choice, epi + 1, 1);
     M_ClearMenus();
 }
 
@@ -22429,7 +22425,7 @@ void M_Episode(int choice)
     if ((gamemode == shareware)
         && choice)
     {
-        M_StartMessage(SWSTRING, 0, false);
+        M_StartMessage((char*)SWSTRING, 0, doom_false);
         M_SetupNextMenu(&ReadDef1);
         return;
     }
@@ -22453,21 +22449,21 @@ void M_Episode(int choice)
 //
 void M_DrawOptions(void)
 {
-    V_DrawPatchDirect(108, 15, 0, W_CacheLumpName("M_OPTTTL", PU_CACHE));
+    V_DrawPatchDirect(108, 15, 0, (patch_t*)W_CacheLumpName((char*)"M_OPTTTL", PU_CACHE));
 
     //V_DrawPatchDirect (OptionsDef.x + 175,OptionsDef.y+LINEHEIGHT*detail,0,
     //                W_CacheLumpName(detailNames[detailLevel],PU_CACHE)); // Details do nothing?
 
     V_DrawPatchDirect(OptionsDef.x + 120, OptionsDef.y + LINEHEIGHT * messages, 0,
-                      W_CacheLumpName(msgNames[showMessages], PU_CACHE));
+                      (patch_t*)W_CacheLumpName(msgNames[showMessages], PU_CACHE));
 
     extern int crosshair;
     V_DrawPatchDirect(OptionsDef.x + 131, OptionsDef.y + LINEHEIGHT * crosshair_opt, 0,
-                      W_CacheLumpName(msgNames[crosshair], PU_CACHE));
+                      (patch_t*)W_CacheLumpName(msgNames[crosshair], PU_CACHE));
 
     extern int always_run;
     V_DrawPatchDirect(OptionsDef.x + 147, OptionsDef.y + LINEHEIGHT * always_run_opt, 0,
-                      W_CacheLumpName(msgNames[always_run], PU_CACHE));
+                      (patch_t*)W_CacheLumpName(msgNames[always_run], PU_CACHE));
 
     M_DrawThermo(OptionsDef.x, OptionsDef.y + LINEHEIGHT * (scrnsize + 1),
                  9, screenSize);
@@ -22476,10 +22472,10 @@ void M_DrawOptions(void)
 
 void M_DrawMouseOptions(void)
 {
-    M_DrawCustomMenuText("TXT_MOPT", 74, 45);
+    M_DrawCustomMenuText((char*)"TXT_MOPT", 74, 45);
 
     V_DrawPatchDirect(MouseOptionsDef.x + 149, MouseOptionsDef.y + LINEHEIGHT * mousemov, 0,
-                      W_CacheLumpName(msgNames[mousemove], PU_CACHE));
+                      (patch_t*)W_CacheLumpName(msgNames[mousemove], PU_CACHE));
 
     M_DrawThermo(MouseOptionsDef.x, MouseOptionsDef.y + LINEHEIGHT * (mousesens + 1),
                  10, mouseSensitivity);
@@ -22502,11 +22498,11 @@ void M_ChangeMessages(int choice)
     showMessages = 1 - showMessages;
 
     if (!showMessages)
-        players[consoleplayer].message = MSGOFF;
+        players[consoleplayer].message = (char*)MSGOFF;
     else
-        players[consoleplayer].message = MSGON;
+        players[consoleplayer].message = (char*)MSGON;
 
-    message_dontfuckwithme = true;
+    message_dontfuckwithme = doom_true;
 }
 
 
@@ -22522,11 +22518,11 @@ void M_ChangeCrosshair(int choice)
     crosshair = 1 - crosshair;
 
     if (!crosshair)
-        players[consoleplayer].message = CROSSOFF;
+        players[consoleplayer].message = (char*)CROSSOFF;
     else
-        players[consoleplayer].message = CROSSON;
+        players[consoleplayer].message = (char*)CROSSON;
 
-    message_dontfuckwithme = true;
+    message_dontfuckwithme = doom_true;
 }
 
 
@@ -22542,11 +22538,11 @@ void M_ChangeAlwaysRun(int choice)
     always_run = 1 - always_run;
 
     if (!always_run)
-        players[consoleplayer].message = ALWAYSRUNOFF;
+        players[consoleplayer].message = (char*)ALWAYSRUNOFF;
     else
-        players[consoleplayer].message = ALWAYSRUNON;
+        players[consoleplayer].message = (char*)ALWAYSRUNON;
 
-    message_dontfuckwithme = true;
+    message_dontfuckwithme = doom_true;
 }
 
 
@@ -22575,11 +22571,11 @@ void M_EndGame(int choice)
 
     if (netgame)
     {
-        M_StartMessage(NETEND, 0, false);
+        M_StartMessage((char*)NETEND, 0, doom_false);
         return;
     }
 
-    M_StartMessage(ENDGAME, M_EndGameResponse, true);
+    M_StartMessage((char*)ENDGAME, M_EndGameResponse, doom_true);
 }
 
 
@@ -22643,7 +22639,7 @@ void M_QuitDOOM(int choice)
         doom_concat(endstring, "\n\n" DOSY);
     }
 
-    M_StartMessage(endstring, M_QuitResponse, true);
+    M_StartMessage(endstring, M_QuitResponse, doom_true);
 }
 
 
@@ -22715,31 +22711,31 @@ void M_DrawThermo(int x, int y, int thermWidth, int thermDot)
     int i;
 
     xx = x;
-    V_DrawPatchDirect(xx, y, 0, W_CacheLumpName("M_THERML", PU_CACHE));
+    V_DrawPatchDirect(xx, y, 0, (patch_t*)W_CacheLumpName((char*)"M_THERML", PU_CACHE));
     xx += 8;
     for (i = 0; i < thermWidth; i++)
     {
-        V_DrawPatchDirect(xx, y, 0, W_CacheLumpName("M_THERMM", PU_CACHE));
+        V_DrawPatchDirect(xx, y, 0, (patch_t*)W_CacheLumpName((char*)"M_THERMM", PU_CACHE));
         xx += 8;
     }
-    V_DrawPatchDirect(xx, y, 0, W_CacheLumpName("M_THERMR", PU_CACHE));
+    V_DrawPatchDirect(xx, y, 0, (patch_t*)W_CacheLumpName((char*)"M_THERMR", PU_CACHE));
 
     V_DrawPatchDirect((x + 8) + thermDot * 8, y,
-                      0, W_CacheLumpName("M_THERMO", PU_CACHE));
+                      0, (patch_t*)W_CacheLumpName((char*)"M_THERMO", PU_CACHE));
 }
 
 
 void M_DrawEmptyCell(menu_t* menu, int item)
 {
     V_DrawPatchDirect(menu->x - 10, menu->y + item * LINEHEIGHT - 1, 0,
-                      W_CacheLumpName("M_CELL1", PU_CACHE));
+                      (patch_t*)W_CacheLumpName((char*)"M_CELL1", PU_CACHE));
 }
 
 
 void M_DrawSelCell(menu_t* menu, int item)
 {
     V_DrawPatchDirect(menu->x - 10, menu->y + item * LINEHEIGHT - 1, 0,
-                      W_CacheLumpName("M_CELL2", PU_CACHE));
+                      (patch_t*)W_CacheLumpName((char*)"M_CELL2", PU_CACHE));
 }
 
 
@@ -22748,9 +22744,9 @@ void M_StartMessage(char* string, void* routine, doom_boolean input)
     messageLastMenuActive = menuactive;
     messageToPrint = 1;
     messageString = string;
-    messageRoutine = routine;
+    messageRoutine = (void(*)(int response))routine;
     messageNeedsInput = input;
-    menuactive = true;
+    menuactive = doom_true;
     return;
 }
 
@@ -22952,7 +22948,7 @@ doom_boolean M_Responder(event_t* ev)
     }
 
     if (ch == -1)
-        return false;
+        return doom_false;
 
 
     // Save Game string input
@@ -22994,30 +22990,30 @@ doom_boolean M_Responder(event_t* ev)
                 }
                 break;
         }
-        return true;
+        return doom_true;
     }
 
     // Take care of any messages that need input
     if (messageToPrint)
     {
-        if (messageNeedsInput == true &&
+        if (messageNeedsInput == doom_true &&
             !(ch == ' ' || ch == 'n' || ch == 'y' || ch == KEY_ESCAPE))
-            return false;
+            return doom_false;
 
         menuactive = messageLastMenuActive;
         messageToPrint = 0;
         if (messageRoutine)
             messageRoutine(ch);
 
-        menuactive = false;
+        menuactive = doom_false;
         S_StartSound(0, sfx_swtchx);
-        return true;
+        return doom_true;
     }
 
     if (devparm && ch == KEY_F1)
     {
         G_ScreenShot();
-        return true;
+        return doom_true;
     }
 
 
@@ -23027,17 +23023,17 @@ doom_boolean M_Responder(event_t* ev)
         {
             case KEY_MINUS:         // Screen size down
                 if (automapactive || chat_on)
-                    return false;
+                    return doom_false;
                 M_SizeDisplay(0);
                 S_StartSound(0, sfx_stnmov);
-                return true;
+                return doom_true;
 
             case KEY_EQUALS:        // Screen size up
                 if (automapactive || chat_on)
-                    return false;
+                    return doom_false;
                 M_SizeDisplay(1);
                 S_StartSound(0, sfx_stnmov);
-                return true;
+                return doom_true;
 
             case KEY_F1:            // Help key
                 M_StartControlPanel();
@@ -23049,69 +23045,69 @@ doom_boolean M_Responder(event_t* ev)
 
                 itemOn = 0;
                 S_StartSound(0, sfx_swtchn);
-                return true;
+                return doom_true;
 
             case KEY_F2:            // Save
                 M_StartControlPanel();
                 S_StartSound(0, sfx_swtchn);
                 M_SaveGame(0);
-                return true;
+                return doom_true;
 
             case KEY_F3:            // Load
                 M_StartControlPanel();
                 S_StartSound(0, sfx_swtchn);
                 M_LoadGame(0);
-                return true;
+                return doom_true;
 
             case KEY_F4:            // Sound Volume
                 M_StartControlPanel();
                 currentMenu = &SoundDef;
                 itemOn = sfx_vol;
                 S_StartSound(0, sfx_swtchn);
-                return true;
+                return doom_true;
 
             // case KEY_F5:            // Detail toggle
             //     M_ChangeDetail(0);
             //     S_StartSound(0, sfx_swtchn);
-            //     return true;
+            //     return doom_true;
 
             case KEY_F5:            // Crosshair toggle
                 M_ChangeCrosshair(0);
                 S_StartSound(0, sfx_swtchn);
-                return true;
+                return doom_true;
 
             case KEY_F6:            // Quicksave
                 S_StartSound(0, sfx_swtchn);
                 M_QuickSave();
-                return true;
+                return doom_true;
 
             case KEY_F7:            // End game
                 S_StartSound(0, sfx_swtchn);
                 M_EndGame(0);
-                return true;
+                return doom_true;
 
             case KEY_F8:            // Toggle messages
                 M_ChangeMessages(0);
                 S_StartSound(0, sfx_swtchn);
-                return true;
+                return doom_true;
 
             case KEY_F9:            // Quickload
                 S_StartSound(0, sfx_swtchn);
                 M_QuickLoad();
-                return true;
+                return doom_true;
 
             case KEY_F10:           // Quit DOOM
                 S_StartSound(0, sfx_swtchn);
                 M_QuitDOOM(0);
-                return true;
+                return doom_true;
 
             case KEY_F11:           // gamma toggle
                 usegamma++;
                 if (usegamma > 4)
                     usegamma = 0;
                 players[consoleplayer].message = gammamsg[usegamma];
-                I_SetPalette(W_CacheLumpName("PLAYPAL", PU_CACHE));
-                return true;
+                I_SetPalette((byte*)W_CacheLumpName((char*)"PLAYPAL", PU_CACHE));
+                return doom_true;
 
         }
 
@@ -23123,9 +23119,9 @@ doom_boolean M_Responder(event_t* ev)
         {
             M_StartControlPanel();
             S_StartSound(0, sfx_swtchn);
-            return true;
+            return doom_true;
         }
-        return false;
+        return doom_false;
     }
 
 
@@ -23140,7 +23136,7 @@ doom_boolean M_Responder(event_t* ev)
                 else itemOn++;
                 S_StartSound(0, sfx_pstop);
             } while (currentMenu->menuitems[itemOn].status == -1);
-            return true;
+            return doom_true;
 
         case KEY_UPARROW:
             do
@@ -23150,7 +23146,7 @@ doom_boolean M_Responder(event_t* ev)
                 else itemOn--;
                 S_StartSound(0, sfx_pstop);
             } while (currentMenu->menuitems[itemOn].status == -1);
-            return true;
+            return doom_true;
 
         case KEY_LEFTARROW:
             if (currentMenu->menuitems[itemOn].routine &&
@@ -23159,7 +23155,7 @@ doom_boolean M_Responder(event_t* ev)
                 S_StartSound(0, sfx_stnmov);
                 currentMenu->menuitems[itemOn].routine(0);
             }
-            return true;
+            return doom_true;
 
         case KEY_RIGHTARROW:
             if (currentMenu->menuitems[itemOn].routine &&
@@ -23168,7 +23164,7 @@ doom_boolean M_Responder(event_t* ev)
                 S_StartSound(0, sfx_stnmov);
                 currentMenu->menuitems[itemOn].routine(1);
             }
-            return true;
+            return doom_true;
 
         case KEY_ENTER:
             if (currentMenu->menuitems[itemOn].routine &&
@@ -23186,13 +23182,13 @@ doom_boolean M_Responder(event_t* ev)
                     S_StartSound(0, sfx_pistol);
                 }
             }
-            return true;
+            return doom_true;
 
         case KEY_ESCAPE:
             currentMenu->lastOn = itemOn;
             M_ClearMenus();
             S_StartSound(0, sfx_swtchx);
-            return true;
+            return doom_true;
 
         case KEY_BACKSPACE:
             currentMenu->lastOn = itemOn;
@@ -23202,7 +23198,7 @@ doom_boolean M_Responder(event_t* ev)
                 itemOn = currentMenu->lastOn;
                 S_StartSound(0, sfx_swtchn);
             }
-            return true;
+            return doom_true;
 
         default:
             for (i = itemOn + 1; i < currentMenu->numitems; i++)
@@ -23210,20 +23206,20 @@ doom_boolean M_Responder(event_t* ev)
                 {
                     itemOn = i;
                     S_StartSound(0, sfx_pstop);
-                    return true;
+                    return doom_true;
                 }
             for (i = 0; i <= itemOn; i++)
                 if (currentMenu->menuitems[i].alphaKey == ch)
                 {
                     itemOn = i;
                     S_StartSound(0, sfx_pstop);
-                    return true;
+                    return doom_true;
                 }
             break;
 
     }
 
-    return false;
+    return doom_false;
 }
 
 
@@ -23256,7 +23252,7 @@ void M_Drawer(void)
     char string[40];
     int start;
 
-    inhelpscreens = false;
+    inhelpscreens = doom_false;
 
 
     // Horiz. & Vertically center string and print it.
@@ -23324,7 +23320,7 @@ void M_Drawer(void)
             }
             else
             {
-                V_DrawPatchDirect(x, y, 0, W_CacheLumpName(menuitem->name, PU_CACHE));
+                V_DrawPatchDirect(x, y, 0, (patch_t*)W_CacheLumpName(menuitem->name, PU_CACHE));
             }
         }
         y += LINEHEIGHT;
@@ -23333,7 +23329,7 @@ void M_Drawer(void)
 
     // DRAW SKULL
     V_DrawPatchDirect(x + SKULLXOFF, currentMenu->y - 5 + itemOn * LINEHEIGHT, 0,
-                      W_CacheLumpName(skullName[whichSkull], PU_CACHE));
+                      (patch_t*)W_CacheLumpName(skullName[whichSkull], PU_CACHE));
 
 }
 
@@ -23375,8 +23371,8 @@ void M_Ticker(void)
 //
 void M_Init(void)
 {
-    doom_boolean hide_mouse = (doom_flags & DOOM_FLAG_HIDE_MOUSE_OPTIONS) ? true : false;
-    doom_boolean hide_sound = ((doom_flags & DOOM_FLAG_HIDE_MUSIC_OPTIONS) && (doom_flags & DOOM_FLAG_HIDE_SOUND_OPTIONS)) ? true : false;
+    doom_boolean hide_mouse = (doom_flags & DOOM_FLAG_HIDE_MOUSE_OPTIONS) ? doom_true : doom_false;
+    doom_boolean hide_sound = ((doom_flags & DOOM_FLAG_HIDE_MUSIC_OPTIONS) && (doom_flags & DOOM_FLAG_HIDE_SOUND_OPTIONS)) ? doom_true : doom_false;
 
     OptionsMenu = OptionsMenuFull;
     if (hide_mouse && !hide_sound)
@@ -23547,54 +23543,54 @@ int always_run;
 
 default_t defaults[] =
 {
-    {"mouse_sensitivity",&mouseSensitivity, 5},
-    {"sfx_volume",&snd_SfxVolume, 8},
-    {"music_volume",&snd_MusicVolume, 8},
-    {"show_messages",&showMessages, 1},
+    {(char*)"mouse_sensitivity",&mouseSensitivity, 5},
+    {(char*)"sfx_volume",&snd_SfxVolume, 8},
+    {(char*)"music_volume",&snd_MusicVolume, 8},
+    {(char*)"show_messages",&showMessages, 1},
 
-    {"key_right",&key_right, KEY_RIGHTARROW},
-    {"key_left",&key_left, KEY_LEFTARROW},
-    {"key_up",&key_up, KEY_UPARROW},
-    {"key_down",&key_down, KEY_DOWNARROW},
-    {"key_strafeleft",&key_strafeleft, ','},
-    {"key_straferight",&key_straferight, '.'},
+    {(char*)"key_right",&key_right, KEY_RIGHTARROW},
+    {(char*)"key_left",&key_left, KEY_LEFTARROW},
+    {(char*)"key_up",&key_up, KEY_UPARROW},
+    {(char*)"key_down",&key_down, KEY_DOWNARROW},
+    {(char*)"key_strafeleft",&key_strafeleft, ','},
+    {(char*)"key_straferight",&key_straferight, '.'},
 
-    {"key_fire",&key_fire, KEY_RCTRL},
-    {"key_use",&key_use, ' '},
-    {"key_strafe",&key_strafe, KEY_RALT},
-    {"key_speed",&key_speed, KEY_RSHIFT},
+    {(char*)"key_fire",&key_fire, KEY_RCTRL},
+    {(char*)"key_use",&key_use, ' '},
+    {(char*)"key_strafe",&key_strafe, KEY_RALT},
+    {(char*)"key_speed",&key_speed, KEY_RSHIFT},
 
-    {"use_mouse",&usemouse, 1},
-    {"mouseb_fire",&mousebfire,0},
-    {"mouseb_strafe",&mousebstrafe,1},
-    {"mouseb_forward",&mousebforward,2},
-    {"mouse_move",&mousemove,0},
+    {(char*)"use_mouse",&usemouse, 1},
+    {(char*)"mouseb_fire",&mousebfire,0},
+    {(char*)"mouseb_strafe",&mousebstrafe,1},
+    {(char*)"mouseb_forward",&mousebforward,2},
+    {(char*)"mouse_move",&mousemove,0},
 
-    {"use_joystick",&usejoystick, 0},
-    {"joyb_fire",&joybfire,0},
-    {"joyb_strafe",&joybstrafe,1},
-    {"joyb_use",&joybuse,3},
-    {"joyb_speed",&joybspeed,2},
+    {(char*)"use_joystick",&usejoystick, 0},
+    {(char*)"joyb_fire",&joybfire,0},
+    {(char*)"joyb_strafe",&joybstrafe,1},
+    {(char*)"joyb_use",&joybuse,3},
+    {(char*)"joyb_speed",&joybspeed,2},
 
-    {"screenblocks",&screenblocks, 9},
-    {"detaillevel",&detailLevel, 0},
-    {"crosshair",&crosshair, 0},
-    {"always_run",&always_run, 0},
+    {(char*)"screenblocks",&screenblocks, 9},
+    {(char*)"detaillevel",&detailLevel, 0},
+    {(char*)"crosshair",&crosshair, 0},
+    {(char*)"always_run",&always_run, 0},
 
-    {"snd_channels",&numChannels, 3},
+    {(char*)"snd_channels",&numChannels, 3},
 
-    {"usegamma",&usegamma, 0},
+    {(char*)"usegamma",&usegamma, 0},
 
-    {"chatmacro0", 0, STRING_VALUE, 0, 0, &chat_macros[0], HUSTR_CHATMACRO0 },
-    {"chatmacro1", 0, STRING_VALUE, 0, 0, &chat_macros[1], HUSTR_CHATMACRO1 },
-    {"chatmacro2", 0, STRING_VALUE, 0, 0, &chat_macros[2], HUSTR_CHATMACRO2 },
-    {"chatmacro3", 0, STRING_VALUE, 0, 0, &chat_macros[3], HUSTR_CHATMACRO3 },
-    {"chatmacro4", 0, STRING_VALUE, 0, 0, &chat_macros[4], HUSTR_CHATMACRO4 },
-    {"chatmacro5", 0, STRING_VALUE, 0, 0, &chat_macros[5], HUSTR_CHATMACRO5 },
-    {"chatmacro6", 0, STRING_VALUE, 0, 0, &chat_macros[6], HUSTR_CHATMACRO6 },
-    {"chatmacro7", 0, STRING_VALUE, 0, 0, &chat_macros[7], HUSTR_CHATMACRO7 },
-    {"chatmacro8", 0, STRING_VALUE, 0, 0, &chat_macros[8], HUSTR_CHATMACRO8 },
-    {"chatmacro9", 0, STRING_VALUE, 0, 0, &chat_macros[9], HUSTR_CHATMACRO9 }
+    {(char*)"chatmacro0", 0, STRING_VALUE, 0, 0, &chat_macros[0], (char*)HUSTR_CHATMACRO0 },
+    {(char*)"chatmacro1", 0, STRING_VALUE, 0, 0, &chat_macros[1], (char*)HUSTR_CHATMACRO1 },
+    {(char*)"chatmacro2", 0, STRING_VALUE, 0, 0, &chat_macros[2], (char*)HUSTR_CHATMACRO2 },
+    {(char*)"chatmacro3", 0, STRING_VALUE, 0, 0, &chat_macros[3], (char*)HUSTR_CHATMACRO3 },
+    {(char*)"chatmacro4", 0, STRING_VALUE, 0, 0, &chat_macros[4], (char*)HUSTR_CHATMACRO4 },
+    {(char*)"chatmacro5", 0, STRING_VALUE, 0, 0, &chat_macros[5], (char*)HUSTR_CHATMACRO5 },
+    {(char*)"chatmacro6", 0, STRING_VALUE, 0, 0, &chat_macros[6], (char*)HUSTR_CHATMACRO6 },
+    {(char*)"chatmacro7", 0, STRING_VALUE, 0, 0, &chat_macros[7], (char*)HUSTR_CHATMACRO7 },
+    {(char*)"chatmacro8", 0, STRING_VALUE, 0, 0, &chat_macros[8], (char*)HUSTR_CHATMACRO8 },
+    {(char*)"chatmacro9", 0, STRING_VALUE, 0, 0, &chat_macros[9], (char*)HUSTR_CHATMACRO9 }
 };
 
 
@@ -23642,15 +23638,15 @@ doom_boolean M_WriteFile(char const* name, void* source, int length)
     handle = doom_open(name, "wb");
 
     if (handle == 0)
-        return false;
+        return doom_false;
 
     count = doom_write(handle, source, length);
     doom_close(handle);
 
     if (count < length)
-        return false;
+        return doom_false;
 
-    return true;
+    return doom_true;
 }
 
 
@@ -23675,7 +23671,7 @@ int M_ReadFile(char const* name, byte** buffer)
     doom_seek(handle, 0, DOOM_SEEK_END);
     length = doom_tell(handle);
     doom_seek(handle, 0, DOOM_SEEK_SET);
-    buf = Z_Malloc(length, PU_STATIC, 0);
+    buf = (byte*)Z_Malloc(length, PU_STATIC, 0);
     count = doom_read(handle, buf, length);
     doom_close(handle);
 
@@ -23758,7 +23754,7 @@ void M_LoadDefaults(void)
     }
 
     // check for a custom default file
-    i = M_CheckParm("-config");
+    i = M_CheckParm((char*)"-config");
     if (i && i < myargc - 1)
     {
         defaultfile = myargv[i + 1];
@@ -23818,14 +23814,14 @@ void M_LoadDefaults(void)
                 strparm[i] = '\0';
             }
 
-            isstring = false;
+            isstring = doom_false;
             //if (fscanf(f, "%79s %[^\n]\n", def, strparm) == 2)
             if (arg_read == 2)
             {
                 if (strparm[0] == '"')
                 {
                     // get a string default
-                    isstring = true;
+                    isstring = doom_true;
                     len = (int)doom_strlen(strparm);
                     newstring = (char*)doom_malloc(len);
                     strparm[len - 1] = 0;
@@ -23868,7 +23864,7 @@ void WritePCXfile(char* filename, byte* data, int width, int height, byte* palet
     pcx_t* pcx;
     byte* pack;
 
-    pcx = Z_Malloc(width * height * 2 + 1000, PU_STATIC, 0);
+    pcx = (pcx_t*)Z_Malloc(width * height * 2 + 1000, PU_STATIC, 0);
 
     pcx->manufacturer = 0x0a; // PCX id
     pcx->version = 5; // 256 color
@@ -23939,14 +23935,14 @@ void M_ScreenShot(void)
         doom_close(f);
     }
     if (i == 100)
-        I_Error("Error: M_ScreenShot: Couldn't create a PCX");
+        I_Error((char*)"Error: M_ScreenShot: Couldn't create a PCX");
 
     // save the pcx file
     WritePCXfile(lbmname, linear,
                  SCREENWIDTH, SCREENHEIGHT,
-                 W_CacheLumpName("PLAYPAL", PU_CACHE));
+                 (byte*)W_CacheLumpName((char*)"PLAYPAL", PU_CACHE));
 
-    players[consoleplayer].message = "screen shot";
+    players[consoleplayer].message = (char*)"screen shot";
 }
 unsigned char rndtable[256] = {
     0,   8, 109, 220, 222, 241, 149, 107,  75, 248, 254, 140,  16,  66 ,
@@ -24037,7 +24033,7 @@ void T_MoveCeiling(ceiling_t* ceiling)
             res = T_MovePlane(ceiling->sector,
                               ceiling->speed,
                               ceiling->topheight,
-                              false, 1, ceiling->direction);
+                              doom_false, 1, ceiling->direction);
 
             if (!(leveltime & 7))
             {
@@ -24171,17 +24167,17 @@ int EV_DoCeiling(line_t* line, ceiling_e type)
 
         // new door thinker
         rtn = 1;
-        ceiling = Z_Malloc(sizeof(*ceiling), PU_LEVSPEC, 0);
+        ceiling = (ceiling_t*)Z_Malloc(sizeof(*ceiling), PU_LEVSPEC, 0);
         P_AddThinker(&ceiling->thinker);
         sec->specialdata = ceiling;
         ceiling->thinker.function.acp1 = (actionf_p1)T_MoveCeiling;
         ceiling->sector = sec;
-        ceiling->crush = false;
+        ceiling->crush = doom_false;
 
         switch (type)
         {
             case fastCrushAndRaise:
-                ceiling->crush = true;
+                ceiling->crush = doom_true;
                 ceiling->topheight = sec->ceilingheight;
                 ceiling->bottomheight = sec->floorheight + (8 * FRACUNIT);
                 ceiling->direction = -1;
@@ -24190,7 +24186,7 @@ int EV_DoCeiling(line_t* line, ceiling_e type)
 
             case silentCrushAndRaise:
             case crushAndRaise:
-                ceiling->crush = true;
+                ceiling->crush = doom_true;
                 ceiling->topheight = sec->ceilingheight;
             case lowerAndCrush:
             case lowerToFloor:
@@ -24361,7 +24357,7 @@ void T_VerticalDoor(vldoor_t* door)
             res = T_MovePlane(door->sector,
                               door->speed,
                               door->sector->floorheight,
-                              false, 1, door->direction);
+                              doom_false, 1, door->direction);
             if (res == pastdest)
             {
                 switch (door->type)
@@ -24411,7 +24407,7 @@ void T_VerticalDoor(vldoor_t* door)
             res = T_MovePlane(door->sector,
                               door->speed,
                               door->topheight,
-                              false, 1, door->direction);
+                              doom_false, 1, door->direction);
 
             if (res == pastdest)
             {
@@ -24460,7 +24456,7 @@ int EV_DoLockedDoor(line_t* line, vldoor_e type, mobj_t* thing)
                 return 0;
             if (!p->cards[it_bluecard] && !p->cards[it_blueskull])
             {
-                p->message = PD_BLUEO;
+                p->message = (char*)PD_BLUEO;
                 S_StartSound(0, sfx_oof);
                 return 0;
             }
@@ -24472,7 +24468,7 @@ int EV_DoLockedDoor(line_t* line, vldoor_e type, mobj_t* thing)
                 return 0;
             if (!p->cards[it_redcard] && !p->cards[it_redskull])
             {
-                p->message = PD_REDO;
+                p->message = (char*)PD_REDO;
                 S_StartSound(0, sfx_oof);
                 return 0;
             }
@@ -24485,7 +24481,7 @@ int EV_DoLockedDoor(line_t* line, vldoor_e type, mobj_t* thing)
             if (!p->cards[it_yellowcard] &&
                 !p->cards[it_yellowskull])
             {
-                p->message = PD_YELLOWO;
+                p->message = (char*)PD_YELLOWO;
                 S_StartSound(0, sfx_oof);
                 return 0;
             }
@@ -24514,7 +24510,7 @@ int EV_DoDoor(line_t* line, vldoor_e type)
 
         // new door thinker
         rtn = 1;
-        door = Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
+        door = (vldoor_t*)Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
         P_AddThinker(&door->thinker);
         sec->specialdata = door;
 
@@ -24605,7 +24601,7 @@ void EV_VerticalDoor(line_t* line, mobj_t* thing)
 
             if (!player->cards[it_bluecard] && !player->cards[it_blueskull])
             {
-                player->message = PD_BLUEK;
+                player->message = (char*)PD_BLUEK;
                 S_StartSound(0, sfx_oof);
                 return;
             }
@@ -24619,7 +24615,7 @@ void EV_VerticalDoor(line_t* line, mobj_t* thing)
             if (!player->cards[it_yellowcard] &&
                 !player->cards[it_yellowskull])
             {
-                player->message = PD_YELLOWK;
+                player->message = (char*)PD_YELLOWK;
                 S_StartSound(0, sfx_oof);
                 return;
             }
@@ -24632,7 +24628,7 @@ void EV_VerticalDoor(line_t* line, mobj_t* thing)
 
             if (!player->cards[it_redcard] && !player->cards[it_redskull])
             {
-                player->message = PD_REDK;
+                player->message = (char*)PD_REDK;
                 S_StartSound(0, sfx_oof);
                 return;
             }
@@ -24645,7 +24641,7 @@ void EV_VerticalDoor(line_t* line, mobj_t* thing)
 
     if (sec->specialdata)
     {
-        door = sec->specialdata;
+        door = (vldoor_t*)sec->specialdata;
         switch (line->special)
         {
             case        1: // ONLY FOR "RAISE" DOORS, NOT "OPEN"s
@@ -24686,7 +24682,7 @@ void EV_VerticalDoor(line_t* line, mobj_t* thing)
 
 
     // new door thinker
-    door = Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
+    door = (vldoor_t*)Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
     P_AddThinker(&door->thinker);
     sec->specialdata = door;
     door->thinker.function.acp1 = (actionf_p1)T_VerticalDoor;
@@ -24736,7 +24732,7 @@ void P_SpawnDoorCloseIn30(sector_t* sec)
 {
     vldoor_t* door;
 
-    door = Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
+    door = (vldoor_t*)Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
 
     P_AddThinker(&door->thinker);
 
@@ -24759,7 +24755,7 @@ void P_SpawnDoorRaiseIn5Mins(sector_t* sec, int secnum)
 {
     vldoor_t* door;
 
-    door = Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
+    door = (vldoor_t*)Z_Malloc(sizeof(*door), PU_LEVSPEC, 0);
 
     P_AddThinker(&door->thinker);
 
@@ -24913,18 +24909,18 @@ doom_boolean P_CheckMeleeRange(mobj_t* actor)
     fixed_t dist;
 
     if (!actor->target)
-        return false;
+        return doom_false;
 
     pl = actor->target;
     dist = P_AproxDistance(pl->x - actor->x, pl->y - actor->y);
 
     if (dist >= MELEERANGE - 20 * FRACUNIT + pl->info->radius)
-        return false;
+        return doom_false;
 
     if (!P_CheckSight(actor, actor->target))
-        return false;
+        return doom_false;
 
-    return true;
+    return doom_true;
 }
 
 
@@ -24936,18 +24932,18 @@ doom_boolean P_CheckMissileRange(mobj_t* actor)
     fixed_t dist;
 
     if (!P_CheckSight(actor, actor->target))
-        return false;
+        return doom_false;
 
     if (actor->flags & MF_JUSTHIT)
     {
         // the target just hit the enemy,
         // so fight back!
         actor->flags &= ~MF_JUSTHIT;
-        return true;
+        return doom_true;
     }
 
     if (actor->reactiontime)
-        return false; // do not attack yet
+        return doom_false; // do not attack yet
 
     // OPTIMIZE: get this from a global checksight
     dist = P_AproxDistance(actor->x - actor->target->x,
@@ -24961,14 +24957,14 @@ doom_boolean P_CheckMissileRange(mobj_t* actor)
     if (actor->type == MT_VILE)
     {
         if (dist > 14 * 64)
-            return false; // too far away
+            return doom_false; // too far away
     }
 
 
     if (actor->type == MT_UNDEAD)
     {
         if (dist < 196)
-            return false; // close for fist attack
+            return doom_false; // close for fist attack
         dist >>= 1;
     }
 
@@ -24986,16 +24982,16 @@ doom_boolean P_CheckMissileRange(mobj_t* actor)
         dist = 160;
 
     if (P_Random() < dist)
-        return false;
+        return doom_false;
 
-    return true;
+    return doom_true;
 }
 
 
 //
 // P_Move
 // Move in the current direction,
-// returns false if the move is blocked.
+// returns doom_false if the move is blocked.
 //
 doom_boolean P_Move(mobj_t* actor)
 {
@@ -25010,10 +25006,10 @@ doom_boolean P_Move(mobj_t* actor)
     doom_boolean good;
 
     if (actor->movedir == DI_NODIR)
-        return false;
+        return doom_false;
 
     if ((unsigned)actor->movedir >= 8)
-        I_Error("Error: Weird actor->movedir!");
+        I_Error((char*)"Error: Weird actor->movedir!");
 
     tryx = actor->x + actor->info->speed * xspeed[actor->movedir];
     tryy = actor->y + actor->info->speed * yspeed[actor->movedir];
@@ -25032,22 +25028,22 @@ doom_boolean P_Move(mobj_t* actor)
                 actor->z -= FLOATSPEED;
 
             actor->flags |= MF_INFLOAT;
-            return true;
+            return doom_true;
         }
 
         if (!numspechit)
-            return false;
+            return doom_false;
 
         actor->movedir = DI_NODIR;
-        good = false;
+        good = doom_false;
         while (numspechit--)
         {
             ld = spechit[numspechit];
             // if the special is not a door
             // that can be opened,
-            // return false
+            // return doom_false
             if (P_UseSpecialLine(actor, ld, 0))
-                good = true;
+                good = doom_true;
         }
         return good;
     }
@@ -25059,7 +25055,7 @@ doom_boolean P_Move(mobj_t* actor)
     if (!(actor->flags & MF_FLOAT))
         actor->z = actor->floorz;
 
-    return true;
+    return doom_true;
 }
 
 
@@ -25068,9 +25064,9 @@ doom_boolean P_Move(mobj_t* actor)
 // Attempts to move actor on
 // in its current (ob->moveangle) direction.
 // If blocked by either a wall or an actor
-// returns FALSE
+// returns doom_false
 // If move is either clear or blocked only by a door,
-// returns TRUE and sets...
+// returns doom_true and sets...
 // If a door is in the way,
 // an OpenDoor call is made to start it opening.
 //
@@ -25078,11 +25074,11 @@ doom_boolean P_TryWalk(mobj_t* actor)
 {
     if (!P_Move(actor))
     {
-        return false;
+        return doom_false;
     }
 
     actor->movecount = P_Random() & 15;
-    return true;
+    return doom_true;
 }
 
 
@@ -25099,9 +25095,9 @@ void P_NewChaseDir(mobj_t* actor)
     dirtype_t turnaround;
 
     if (!actor->target)
-        I_Error("Error: P_NewChaseDir: called with no target");
+        I_Error((char*)"Error: P_NewChaseDir: called with no target");
 
-    olddir = actor->movedir;
+    olddir = (dirtype_t)actor->movedir;
     turnaround = opposite[olddir];
 
     deltax = actor->target->x - actor->x;
@@ -25136,7 +25132,7 @@ void P_NewChaseDir(mobj_t* actor)
     {
         tdir = d[1];
         d[1] = d[2];
-        d[2] = tdir;
+        d[2] = (dirtype_t)tdir;
     }
 
     if (d[1] == turnaround)
@@ -25217,8 +25213,8 @@ void P_NewChaseDir(mobj_t* actor)
 
 //
 // P_LookForPlayers
-// If allaround is false, only look 180 degrees in front.
-// Returns true if a player is targeted.
+// If allaround is doom_false, only look 180 degrees in front.
+// Returns doom_true if a player is targeted.
 //
 doom_boolean P_LookForPlayers(mobj_t* actor, doom_boolean allaround)
 {
@@ -25243,7 +25239,7 @@ doom_boolean P_LookForPlayers(mobj_t* actor, doom_boolean allaround)
             || actor->lastlook == stop)
         {
             // done looking
-            return false;
+            return doom_false;
         }
 
         player = &players[actor->lastlook];
@@ -25273,10 +25269,10 @@ doom_boolean P_LookForPlayers(mobj_t* actor, doom_boolean allaround)
         }
 
         actor->target = player->mo;
-        return true;
+        return doom_true;
     }
 
-    return false;
+    return doom_false;
 }
 
 
@@ -25345,7 +25341,7 @@ void A_Look(mobj_t* actor)
     }
 
 
-    if (!P_LookForPlayers(actor, false))
+    if (!P_LookForPlayers(actor, doom_false))
         return;
 
     // go into chase state
@@ -25382,7 +25378,7 @@ seeyou:
             S_StartSound(actor, sound);
     }
 
-    P_SetMobjState(actor, actor->info->seestate);
+    P_SetMobjState(actor, (statenum_t)actor->info->seestate);
 }
 
 
@@ -25426,10 +25422,10 @@ void A_Chase(mobj_t* actor)
         || !(actor->target->flags & MF_SHOOTABLE))
     {
         // look for a new target
-        if (P_LookForPlayers(actor, true))
+        if (P_LookForPlayers(actor, doom_true))
             return;         // got a new target
 
-        P_SetMobjState(actor, actor->info->spawnstate);
+        P_SetMobjState(actor, (statenum_t)actor->info->spawnstate);
         return;
     }
 
@@ -25449,7 +25445,7 @@ void A_Chase(mobj_t* actor)
         if (actor->info->attacksound)
             S_StartSound(actor, actor->info->attacksound);
 
-        P_SetMobjState(actor, actor->info->meleestate);
+        P_SetMobjState(actor, (statenum_t)actor->info->meleestate);
         return;
     }
 
@@ -25465,7 +25461,7 @@ void A_Chase(mobj_t* actor)
         if (!P_CheckMissileRange(actor))
             goto nomissile;
 
-        P_SetMobjState(actor, actor->info->missilestate);
+        P_SetMobjState(actor, (statenum_t)actor->info->missilestate);
         actor->flags |= MF_JUSTATTACKED;
         return;
     }
@@ -25477,7 +25473,7 @@ nomissile:
         && !actor->threshold
         && !P_CheckSight(actor, actor->target))
     {
-        if (P_LookForPlayers(actor, true))
+        if (P_LookForPlayers(actor, doom_true))
             return;        // got a new target
     }
 
@@ -25598,7 +25594,7 @@ void A_CPosRefire(mobj_t* actor)
         || actor->target->health <= 0
         || !P_CheckSight(actor, actor->target))
     {
-        P_SetMobjState(actor, actor->info->seestate);
+        P_SetMobjState(actor, (statenum_t)actor->info->seestate);
     }
 }
 
@@ -25615,7 +25611,7 @@ void A_SpidRefire(mobj_t* actor)
         || actor->target->health <= 0
         || !P_CheckSight(actor, actor->target))
     {
-        P_SetMobjState(actor, actor->info->seestate);
+        P_SetMobjState(actor, (statenum_t)actor->info->seestate);
     }
 }
 
@@ -25853,19 +25849,19 @@ doom_boolean PIT_VileCheck(mobj_t* thing)
     doom_boolean check;
 
     if (!(thing->flags & MF_CORPSE))
-        return true; // not a monster
+        return doom_true; // not a monster
 
     if (thing->tics != -1)
-        return true; // not lying still yet
+        return doom_true; // not lying still yet
 
     if (thing->info->raisestate == S_NULL)
-        return true; // monster doesn't have a raise state
+        return doom_true; // monster doesn't have a raise state
 
     maxdist = thing->info->radius + mobjinfo[MT_VILE].radius;
 
     if (doom_abs(thing->x - viletryx) > maxdist
         || doom_abs(thing->y - viletryy) > maxdist)
-        return true; // not actually touching
+        return doom_true; // not actually touching
 
     corpsehit = thing;
     corpsehit->momx = corpsehit->momy = 0;
@@ -25874,9 +25870,9 @@ doom_boolean PIT_VileCheck(mobj_t* thing)
     corpsehit->height >>= 2;
 
     if (!check)
-        return true; // doesn't fit here
+        return doom_true; // doesn't fit here
 
-    return false; // got one, so stop checking
+    return doom_false; // got one, so stop checking
 }
 
 
@@ -25930,7 +25926,7 @@ void A_VileChase(mobj_t* actor)
                     S_StartSound(corpsehit, sfx_slop);
                     info = corpsehit->info;
 
-                    P_SetMobjState(corpsehit, info->raisestate);
+                    P_SetMobjState(corpsehit, (statenum_t)info->raisestate);
                     corpsehit->height <<= 2;
                     corpsehit->flags = info->flags;
                     corpsehit->health = info->spawnhealth;
@@ -26666,8 +26662,8 @@ void A_SpawnFly(mobj_t* mo)
         type = MT_BRUISER;
 
     newmobj = P_SpawnMobj(targ->x, targ->y, targ->z, type);
-    if (P_LookForPlayers(newmobj, true))
-        P_SetMobjState(newmobj, newmobj->info->seestate);
+    if (P_LookForPlayers(newmobj, doom_true))
+        P_SetMobjState(newmobj, (statenum_t)newmobj->info->seestate);
 
     // telefrag anything in this spot
     P_TeleportMove(newmobj, newmobj->x, newmobj->y);
@@ -26715,7 +26711,7 @@ result_e T_MovePlane(sector_t* sector,
                         lastpos = sector->floorheight;
                         sector->floorheight = dest;
                         flag = P_ChangeSector(sector, crush);
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
                             sector->floorheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26728,7 +26724,7 @@ result_e T_MovePlane(sector_t* sector,
                         lastpos = sector->floorheight;
                         sector->floorheight -= speed;
                         flag = P_ChangeSector(sector, crush);
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
                             sector->floorheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26744,7 +26740,7 @@ result_e T_MovePlane(sector_t* sector,
                         lastpos = sector->floorheight;
                         sector->floorheight = dest;
                         flag = P_ChangeSector(sector, crush);
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
                             sector->floorheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26758,9 +26754,9 @@ result_e T_MovePlane(sector_t* sector,
                         lastpos = sector->floorheight;
                         sector->floorheight += speed;
                         flag = P_ChangeSector(sector, crush);
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
-                            if (crush == true)
+                            if (crush == doom_true)
                                 return crushed;
                             sector->floorheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26783,7 +26779,7 @@ result_e T_MovePlane(sector_t* sector,
                         sector->ceilingheight = dest;
                         flag = P_ChangeSector(sector, crush);
 
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
                             sector->ceilingheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26798,9 +26794,9 @@ result_e T_MovePlane(sector_t* sector,
                         sector->ceilingheight -= speed;
                         flag = P_ChangeSector(sector, crush);
 
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
-                            if (crush == true)
+                            if (crush == doom_true)
                                 return crushed;
                             sector->ceilingheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26816,7 +26812,7 @@ result_e T_MovePlane(sector_t* sector,
                         lastpos = sector->ceilingheight;
                         sector->ceilingheight = dest;
                         flag = P_ChangeSector(sector, crush);
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
                             sector->ceilingheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26831,7 +26827,7 @@ result_e T_MovePlane(sector_t* sector,
                         flag = P_ChangeSector(sector, crush);
                         // UNUSED
 #if 0
-                        if (flag == true)
+                        if (flag == doom_true)
                         {
                             sector->ceilingheight = lastpos;
                             P_ChangeSector(sector, crush);
@@ -26921,12 +26917,12 @@ int EV_DoFloor(line_t* line, floor_e floortype)
 
         // new floor thinker
         rtn = 1;
-        floor = Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
+        floor = (floormove_t*)Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
         P_AddThinker(&floor->thinker);
         sec->specialdata = floor;
         floor->thinker.function.acp1 = (actionf_p1)T_MoveFloor;
         floor->type = floortype;
-        floor->crush = false;
+        floor->crush = doom_false;
 
         switch (floortype)
         {
@@ -26957,7 +26953,7 @@ int EV_DoFloor(line_t* line, floor_e floortype)
                 break;
 
             case raiseFloorCrush:
-                floor->crush = true;
+                floor->crush = doom_true;
             case raiseFloor:
                 floor->direction = 1;
                 floor->sector = sec;
@@ -27120,7 +27116,7 @@ int EV_BuildStairs(line_t* line, stair_e type)
 
         // new floor thinker
         rtn = 1;
-        floor = Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
+        floor = (floormove_t*)Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
         P_AddThinker(&floor->thinker);
         sec->specialdata = floor;
         floor->thinker.function.acp1 = (actionf_p1)T_MoveFloor;
@@ -27173,7 +27169,7 @@ int EV_BuildStairs(line_t* line, stair_e type)
 
                 sec = tsec;
                 secnum = newsecnum;
-                floor = Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
+                floor = (floormove_t*)Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
 
                 P_AddThinker(&floor->thinker);
 
@@ -27216,7 +27212,7 @@ int        clipammo[NUMAMMO] = {10, 4, 20, 1};
 // P_GiveAmmo
 // Num is the number of clip loads,
 // not the individual count (0= 1/2 clip).
-// Returns false if the ammo can't be picked up at all
+// Returns doom_false if the ammo can't be picked up at all
 //
 
 doom_boolean
@@ -27228,7 +27224,7 @@ P_GiveAmmo
     int                oldammo;
         
     if (ammo == am_noammo)
-        return false;
+        return doom_false;
                 
     if (ammo < 0 || ammo > NUMAMMO)
     {
@@ -27240,7 +27236,7 @@ P_GiveAmmo
     }
                 
     if ( player->ammo[ammo] == player->maxammo[ammo]  )
-        return false;
+        return doom_false;
                 
     if (num)
         num *= clipammo[ammo];
@@ -27266,7 +27262,7 @@ P_GiveAmmo
     // don't change up weapons,
     // player was lower on purpose.
     if (oldammo)
-        return true;        
+        return doom_true;        
 
     // We were down to zero,
     // so select a new weapon.
@@ -27311,7 +27307,7 @@ P_GiveAmmo
         break;
     }
         
-    return true;
+    return doom_true;
 }
 
 
@@ -27328,16 +27324,14 @@ P_GiveWeapon
     doom_boolean        gaveammo;
     doom_boolean        gaveweapon;
         
-    if (netgame
-        && (deathmatch!=2)
-         && !dropped )
+    if (netgame && (deathmatch != 2) && !dropped)
     {
         // leave placed weapons forever on net games
         if (player->weaponowned[weapon])
-            return false;
+            return doom_false;
 
         player->bonuscount += BONUSADD;
-        player->weaponowned[weapon] = true;
+        player->weaponowned[weapon] = doom_true;
 
         if (deathmatch)
             P_GiveAmmo (player, weaponinfo[weapon].ammo, 5);
@@ -27347,7 +27341,7 @@ P_GiveWeapon
 
         if (player == &players[consoleplayer])
             S_StartSound (0, sfx_wpnup);
-        return false;
+        return doom_false;
     }
         
     if (weaponinfo[weapon].ammo != am_noammo)
@@ -27360,14 +27354,14 @@ P_GiveWeapon
             gaveammo = P_GiveAmmo (player, weaponinfo[weapon].ammo, 2);
     }
     else
-        gaveammo = false;
+        gaveammo = doom_false;
         
     if (player->weaponowned[weapon])
-        gaveweapon = false;
+        gaveweapon = doom_false;
     else
     {
-        gaveweapon = true;
-        player->weaponowned[weapon] = true;
+        gaveweapon = doom_true;
+        player->weaponowned[weapon] = doom_true;
         player->pendingweapon = weapon;
     }
         
@@ -27378,7 +27372,7 @@ P_GiveWeapon
 
 //
 // P_GiveBody
-// Returns false if the body isn't needed at all
+// Returns doom_false if the body isn't needed at all
 //
 doom_boolean
 P_GiveBody
@@ -27386,21 +27380,21 @@ P_GiveBody
   int                num )
 {
     if (player->health >= MAXHEALTH)
-        return false;
+        return doom_false;
                 
     player->health += num;
     if (player->health > MAXHEALTH)
         player->health = MAXHEALTH;
     player->mo->health = player->health;
         
-    return true;
+    return doom_true;
 }
 
 
 
 //
 // P_GiveArmor
-// Returns false if the armor is worse
+// Returns doom_false if the armor is worse
 // than the current armor.
 //
 doom_boolean
@@ -27412,12 +27406,12 @@ P_GiveArmor
         
     hits = armortype*100;
     if (player->armorpoints >= hits)
-        return false;        // don't pick up
+        return doom_false;        // don't pick up
                 
     player->armortype = armortype;
     player->armorpoints = hits;
         
-    return true;
+    return doom_true;
 }
 
 
@@ -27449,40 +27443,40 @@ P_GivePower
     if (power == pw_invulnerability)
     {
         player->powers[power] = INVULNTICS;
-        return true;
+        return doom_true;
     }
     
     if (power == pw_invisibility)
     {
         player->powers[power] = INVISTICS;
         player->mo->flags |= MF_SHADOW;
-        return true;
+        return doom_true;
     }
     
     if (power == pw_infrared)
     {
         player->powers[power] = INFRATICS;
-        return true;
+        return doom_true;
     }
     
     if (power == pw_ironfeet)
     {
         player->powers[power] = IRONTICS;
-        return true;
+        return doom_true;
     }
     
     if (power == pw_strength)
     {
         P_GiveBody (player, 100);
         player->powers[power] = 1;
-        return true;
+        return doom_true;
     }
         
     if (player->powers[power])
-        return false;        // already got it
+        return doom_false;        // already got it
                 
     player->powers[power] = 1;
-    return true;
+    return doom_true;
 }
 
 
@@ -27525,13 +27519,13 @@ P_TouchSpecialThing
       case SPR_ARM1:
         if (!P_GiveArmor (player, 1))
             return;
-        player->message = GOTARMOR;
+        player->message = (char*)GOTARMOR;
         break;
                 
       case SPR_ARM2:
         if (!P_GiveArmor (player, 2))
             return;
-        player->message = GOTMEGA;
+        player->message = (char*)GOTMEGA;
         break;
         
         // bonus items
@@ -27540,7 +27534,7 @@ P_TouchSpecialThing
         if (player->health > 200)
             player->health = 200;
         player->mo->health = player->health;
-        player->message = GOTHTHBONUS;
+        player->message = (char*)GOTHTHBONUS;
         break;
         
       case SPR_BON2:
@@ -27549,7 +27543,7 @@ P_TouchSpecialThing
             player->armorpoints = 200;
         if (!player->armortype)
             player->armortype = 1;
-        player->message = GOTARMBONUS;
+        player->message = (char*)GOTARMBONUS;
         break;
         
       case SPR_SOUL:
@@ -27557,7 +27551,7 @@ P_TouchSpecialThing
         if (player->health > 200)
             player->health = 200;
         player->mo->health = player->health;
-        player->message = GOTSUPER;
+        player->message = (char*)GOTSUPER;
         sound = sfx_getpow;
         break;
         
@@ -27567,7 +27561,7 @@ P_TouchSpecialThing
         player->health = 200;
         player->mo->health = player->health;
         P_GiveArmor (player,2);
-        player->message = GOTMSPHERE;
+        player->message = (char*)GOTMSPHERE;
         sound = sfx_getpow;
         break;
         
@@ -27575,7 +27569,7 @@ P_TouchSpecialThing
         // leave cards for everyone
       case SPR_BKEY:
         if (!player->cards[it_bluecard])
-            player->message = GOTBLUECARD;
+            player->message = (char*)GOTBLUECARD;
         P_GiveCard (player, it_bluecard);
         if (!netgame)
             break;
@@ -27583,7 +27577,7 @@ P_TouchSpecialThing
         
       case SPR_YKEY:
         if (!player->cards[it_yellowcard])
-            player->message = GOTYELWCARD;
+            player->message = (char*)GOTYELWCARD;
         P_GiveCard (player, it_yellowcard);
         if (!netgame)
             break;
@@ -27591,7 +27585,7 @@ P_TouchSpecialThing
         
       case SPR_RKEY:
         if (!player->cards[it_redcard])
-            player->message = GOTREDCARD;
+            player->message = (char*)GOTREDCARD;
         P_GiveCard (player, it_redcard);
         if (!netgame)
             break;
@@ -27599,7 +27593,7 @@ P_TouchSpecialThing
         
       case SPR_BSKU:
         if (!player->cards[it_blueskull])
-            player->message = GOTBLUESKUL;
+            player->message = (char*)GOTBLUESKUL;
         P_GiveCard (player, it_blueskull);
         if (!netgame)
             break;
@@ -27607,7 +27601,7 @@ P_TouchSpecialThing
         
       case SPR_YSKU:
         if (!player->cards[it_yellowskull])
-            player->message = GOTYELWSKUL;
+            player->message = (char*)GOTYELWSKUL;
         P_GiveCard (player, it_yellowskull);
         if (!netgame)
             break;
@@ -27615,7 +27609,7 @@ P_TouchSpecialThing
         
       case SPR_RSKU:
         if (!player->cards[it_redskull])
-            player->message = GOTREDSKULL;
+            player->message = (char*)GOTREDSKULL;
         P_GiveCard (player, it_redskull);
         if (!netgame)
             break;
@@ -27625,7 +27619,7 @@ P_TouchSpecialThing
       case SPR_STIM:
         if (!P_GiveBody (player, 10))
             return;
-        player->message = GOTSTIM;
+        player->message = (char*)GOTSTIM;
         break;
         
       case SPR_MEDI:
@@ -27633,9 +27627,9 @@ P_TouchSpecialThing
             return;
 
         if (player->health < 25)
-            player->message = GOTMEDINEED;
+            player->message = (char*)GOTMEDINEED;
         else
-            player->message = GOTMEDIKIT;
+            player->message = (char*)GOTMEDIKIT;
         break;
 
         
@@ -27643,14 +27637,14 @@ P_TouchSpecialThing
       case SPR_PINV:
         if (!P_GivePower (player, pw_invulnerability))
             return;
-        player->message = GOTINVUL;
+        player->message = (char*)GOTINVUL;
         sound = sfx_getpow;
         break;
         
       case SPR_PSTR:
         if (!P_GivePower (player, pw_strength))
             return;
-        player->message = GOTBERSERK;
+        player->message = (char*)GOTBERSERK;
         if (player->readyweapon != wp_fist)
             player->pendingweapon = wp_fist;
         sound = sfx_getpow;
@@ -27659,28 +27653,28 @@ P_TouchSpecialThing
       case SPR_PINS:
         if (!P_GivePower (player, pw_invisibility))
             return;
-        player->message = GOTINVIS;
+        player->message = (char*)GOTINVIS;
         sound = sfx_getpow;
         break;
         
       case SPR_SUIT:
         if (!P_GivePower (player, pw_ironfeet))
             return;
-        player->message = GOTSUIT;
+        player->message = (char*)GOTSUIT;
         sound = sfx_getpow;
         break;
         
       case SPR_PMAP:
         if (!P_GivePower (player, pw_allmap))
             return;
-        player->message = GOTMAP;
+        player->message = (char*)GOTMAP;
         sound = sfx_getpow;
         break;
         
       case SPR_PVIS:
         if (!P_GivePower (player, pw_infrared))
             return;
-        player->message = GOTVISOR;
+        player->message = (char*)GOTVISOR;
         sound = sfx_getpow;
         break;
         
@@ -27696,49 +27690,49 @@ P_TouchSpecialThing
             if (!P_GiveAmmo (player,am_clip,1))
                 return;
         }
-        player->message = GOTCLIP;
+        player->message = (char*)GOTCLIP;
         break;
         
       case SPR_AMMO:
         if (!P_GiveAmmo (player, am_clip,5))
             return;
-        player->message = GOTCLIPBOX;
+        player->message = (char*)GOTCLIPBOX;
         break;
         
       case SPR_ROCK:
         if (!P_GiveAmmo (player, am_misl,1))
             return;
-        player->message = GOTROCKET;
+        player->message = (char*)GOTROCKET;
         break;
         
       case SPR_BROK:
         if (!P_GiveAmmo (player, am_misl,5))
             return;
-        player->message = GOTROCKBOX;
+        player->message = (char*)GOTROCKBOX;
         break;
         
       case SPR_CELL:
         if (!P_GiveAmmo (player, am_cell,1))
             return;
-        player->message = GOTCELL;
+        player->message = (char*)GOTCELL;
         break;
         
       case SPR_CELP:
         if (!P_GiveAmmo (player, am_cell,5))
             return;
-        player->message = GOTCELLBOX;
+        player->message = (char*)GOTCELLBOX;
         break;
         
       case SPR_SHEL:
         if (!P_GiveAmmo (player, am_shell,1))
             return;
-        player->message = GOTSHELLS;
+        player->message = (char*)GOTSHELLS;
         break;
         
       case SPR_SBOX:
         if (!P_GiveAmmo (player, am_shell,5))
             return;
-        player->message = GOTSHELLBOX;
+        player->message = (char*)GOTSHELLBOX;
         break;
         
       case SPR_BPAK:
@@ -27746,65 +27740,65 @@ P_TouchSpecialThing
         {
             for (i=0 ; i<NUMAMMO ; i++)
                 player->maxammo[i] *= 2;
-            player->backpack = true;
+            player->backpack = doom_true;
         }
         for (i=0 ; i<NUMAMMO ; i++)
-            P_GiveAmmo (player, i, 1);
-        player->message = GOTBACKPACK;
+            P_GiveAmmo (player, (ammotype_t)i, 1);
+        player->message = (char*)GOTBACKPACK;
         break;
         
         // weapons
       case SPR_BFUG:
-        if (!P_GiveWeapon (player, wp_bfg, false) )
+        if (!P_GiveWeapon (player, wp_bfg, doom_false) )
             return;
-        player->message = GOTBFG9000;
+        player->message = (char*)GOTBFG9000;
         sound = sfx_wpnup;        
         break;
         
       case SPR_MGUN:
         if (!P_GiveWeapon (player, wp_chaingun, special->flags&MF_DROPPED) )
             return;
-        player->message = GOTCHAINGUN;
+        player->message = (char*)GOTCHAINGUN;
         sound = sfx_wpnup;        
         break;
         
       case SPR_CSAW:
-        if (!P_GiveWeapon (player, wp_chainsaw, false) )
+        if (!P_GiveWeapon (player, wp_chainsaw, doom_false) )
             return;
-        player->message = GOTCHAINSAW;
+        player->message = (char*)GOTCHAINSAW;
         sound = sfx_wpnup;        
         break;
         
       case SPR_LAUN:
-        if (!P_GiveWeapon (player, wp_missile, false) )
+        if (!P_GiveWeapon (player, wp_missile, doom_false) )
             return;
-        player->message = GOTLAUNCHER;
+        player->message = (char*)GOTLAUNCHER;
         sound = sfx_wpnup;        
         break;
         
       case SPR_PLAS:
-        if (!P_GiveWeapon (player, wp_plasma, false) )
+        if (!P_GiveWeapon (player, wp_plasma, doom_false) )
             return;
-        player->message = GOTPLASMA;
+        player->message = (char*)GOTPLASMA;
         sound = sfx_wpnup;        
         break;
         
       case SPR_SHOT:
         if (!P_GiveWeapon (player, wp_shotgun, special->flags&MF_DROPPED ) )
             return;
-        player->message = GOTSHOTGUN;
+        player->message = (char*)GOTSHOTGUN;
         sound = sfx_wpnup;        
         break;
                 
       case SPR_SGN2:
         if (!P_GiveWeapon (player, wp_supershotgun, special->flags&MF_DROPPED ) )
             return;
-        player->message = GOTSHOTGUN2;
+        player->message = (char*)GOTSHOTGUN2;
         sound = sfx_wpnup;        
         break;
                 
       default:
-        I_Error ("P_SpecialThing: Unknown gettable thing");
+        I_Error ((char*)"P_SpecialThing: Unknown gettable thing");
     }
         
     if (special->flags & MF_COUNTITEM)
@@ -27874,10 +27868,10 @@ P_KillMobj
     if (target->health < -target->info->spawnhealth 
         && target->info->xdeathstate)
     {
-        P_SetMobjState (target, target->info->xdeathstate);
+        P_SetMobjState (target, (statenum_t)target->info->xdeathstate);
     }
     else
-        P_SetMobjState (target, target->info->deathstate);
+        P_SetMobjState (target, (statenum_t)target->info->deathstate);
     target->tics -= P_Random()&3;
 
     if (target->tics < 1)
@@ -28051,7 +28045,7 @@ P_DamageMobj
     {
         target->flags |= MF_JUSTHIT;        // fight back!
         
-        P_SetMobjState (target, target->info->painstate);
+        P_SetMobjState (target, (statenum_t)target->info->painstate);
     }
                         
     target->reactiontime = 0;                // we're awake now...        
@@ -28066,7 +28060,7 @@ P_DamageMobj
         target->threshold = BASETHRESHOLD;
         if (target->state == &states[target->info->spawnstate]
             && target->info->seestate != S_NULL)
-            P_SetMobjState (target, target->info->seestate);
+            P_SetMobjState (target, (statenum_t)target->info->seestate);
     }
                         
 }
@@ -28100,7 +28094,7 @@ void P_SpawnFireFlicker(sector_t* sector)
     // Nothing special about it during gameplay.
     sector->special = 0;
 
-    flick = Z_Malloc(sizeof(*flick), PU_LEVSPEC, 0);
+    flick = (fireflicker_t*)Z_Malloc(sizeof(*flick), PU_LEVSPEC, 0);
 
     P_AddThinker(&flick->thinker);
 
@@ -28150,7 +28144,7 @@ void P_SpawnLightFlash(sector_t* sector)
     // nothing special about it during gameplay
     sector->special = 0;
 
-    flash = Z_Malloc(sizeof(*flash), PU_LEVSPEC, 0);
+    flash = (lightflash_t*)Z_Malloc(sizeof(*flash), PU_LEVSPEC, 0);
 
     P_AddThinker(&flash->thinker);
 
@@ -28199,7 +28193,7 @@ void P_SpawnStrobeFlash(sector_t* sector, int fastOrSlow, int inSync)
 {
     strobe_t* flash;
 
-    flash = Z_Malloc(sizeof(*flash), PU_LEVSPEC, 0);
+    flash = (strobe_t*)Z_Malloc(sizeof(*flash), PU_LEVSPEC, 0);
 
     P_AddThinker(&flash->thinker);
 
@@ -28351,7 +28345,7 @@ void P_SpawnGlowingLight(sector_t* sector)
 {
     glow_t* g;
 
-    g = Z_Malloc(sizeof(*g), PU_LEVSPEC, 0);
+    g = (glow_t*)Z_Malloc(sizeof(*g), PU_LEVSPEC, 0);
 
     P_AddThinker(&g->thinker);
 
@@ -28372,7 +28366,7 @@ int tmflags;
 fixed_t tmx;
 fixed_t tmy;
 
-// If "floatok" true, move would be ok
+// If "floatok" doom_true, move would be ok
 // if within "tmfloorz - tmceilingz".
 doom_boolean floatok;
 
@@ -28423,7 +28417,7 @@ doom_boolean PIT_StompThing(mobj_t* thing)
     fixed_t blockdist;
 
     if (!(thing->flags & MF_SHOOTABLE))
-        return true;
+        return doom_true;
 
     blockdist = thing->radius + tmthing->radius;
 
@@ -28431,20 +28425,20 @@ doom_boolean PIT_StompThing(mobj_t* thing)
         || doom_abs(thing->y - tmy) >= blockdist)
     {
         // didn't hit it
-        return true;
+        return doom_true;
     }
 
     // don't clip against self
     if (thing == tmthing)
-        return true;
+        return doom_true;
 
     // monsters don't stomp things except on boss level
     if (!tmthing->player && gamemap != 30)
-        return false;
+        return doom_false;
 
     P_DamageMobj(thing, tmthing, tmthing, 10000);
 
-    return true;
+    return doom_true;
 }
 
 
@@ -28496,7 +28490,7 @@ doom_boolean P_TeleportMove(mobj_t* thing, fixed_t x, fixed_t y)
     for (bx = xl; bx <= xh; bx++)
         for (by = yl; by <= yh; by++)
             if (!P_BlockThingsIterator(bx, by, PIT_StompThing))
-                return false;
+                return doom_false;
 
     // the move is ok,
     // so link the thing into its new position
@@ -28509,7 +28503,7 @@ doom_boolean P_TeleportMove(mobj_t* thing, fixed_t x, fixed_t y)
 
     P_SetThingPosition(thing);
 
-    return true;
+    return doom_true;
 }
 
 
@@ -28527,16 +28521,16 @@ doom_boolean PIT_CheckLine(line_t* ld)
         || tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]
         || tmbbox[BOXTOP] <= ld->bbox[BOXBOTTOM]
         || tmbbox[BOXBOTTOM] >= ld->bbox[BOXTOP])
-        return true;
+        return doom_true;
 
     if (P_BoxOnLineSide(tmbbox, ld) != -1)
-        return true;
+        return doom_true;
 
     // A line has been hit
 
     // The moving thing's destination position will cross
     // the given line.
-    // If this should not be allowed, return false.
+    // If this should not be allowed, return doom_false.
     // If the line is special, keep track of it
     // to process later if the move is proven ok.
     // NOTE: specials are NOT sorted by order,
@@ -28544,15 +28538,15 @@ doom_boolean PIT_CheckLine(line_t* ld)
     // could be crossed in either order.
 
     if (!ld->backsector)
-        return false;                // one sided line
+        return doom_false;                // one sided line
 
     if (!(tmthing->flags & MF_MISSILE))
     {
         if (ld->flags & ML_BLOCKING)
-            return false;        // explicitly blocking everything
+            return doom_false;        // explicitly blocking everything
 
         if (!tmthing->player && ld->flags & ML_BLOCKMONSTERS)
-            return false;        // block monsters only
+            return doom_false;        // block monsters only
     }
 
     // set openrange, opentop, openbottom
@@ -28578,7 +28572,7 @@ doom_boolean PIT_CheckLine(line_t* ld)
         numspechit++;
     }
 
-    return true;
+    return doom_true;
 }
 
 
@@ -28592,7 +28586,7 @@ doom_boolean PIT_CheckThing(mobj_t* thing)
     int                        damage;
 
     if (!(thing->flags & (MF_SOLID | MF_SPECIAL | MF_SHOOTABLE)))
-        return true;
+        return doom_true;
 
     blockdist = thing->radius + tmthing->radius;
 
@@ -28600,12 +28594,12 @@ doom_boolean PIT_CheckThing(mobj_t* thing)
         || doom_abs(thing->y - tmy) >= blockdist)
     {
         // didn't hit it
-        return true;
+        return doom_true;
     }
 
     // don't clip against self
     if (thing == tmthing)
-        return true;
+        return doom_true;
 
     // check for skulls slamming into things
     if (tmthing->flags & MF_SKULLFLY)
@@ -28617,9 +28611,9 @@ doom_boolean PIT_CheckThing(mobj_t* thing)
         tmthing->flags &= ~MF_SKULLFLY;
         tmthing->momx = tmthing->momy = tmthing->momz = 0;
 
-        P_SetMobjState(tmthing, tmthing->info->spawnstate);
+        P_SetMobjState(tmthing, (statenum_t)tmthing->info->spawnstate);
 
-        return false; // stop moving
+        return doom_false; // stop moving
     }
 
 
@@ -28628,9 +28622,9 @@ doom_boolean PIT_CheckThing(mobj_t* thing)
     {
         // see if it went over / under
         if (tmthing->z > thing->z + thing->height)
-            return true; // overhead
+            return doom_true; // overhead
         if (tmthing->z + tmthing->height < thing->z)
-            return true; // underneath
+            return doom_true; // underneath
 
         if (tmthing->target && (
             tmthing->target->type == thing->type ||
@@ -28639,13 +28633,13 @@ doom_boolean PIT_CheckThing(mobj_t* thing)
         {
             // Don't hit same species as originator.
             if (thing == tmthing->target)
-                return true;
+                return doom_true;
 
             if (thing->type != MT_PLAYER)
             {
                 // Explode, but do no damage.
                 // Let players missile other players.
-                return false;
+                return doom_false;
             }
         }
 
@@ -28660,7 +28654,7 @@ doom_boolean PIT_CheckThing(mobj_t* thing)
         P_DamageMobj(thing, tmthing, tmthing->target, damage);
 
         // don't traverse any more
-        return false;
+        return doom_false;
     }
 
     // check for special pickup
@@ -28742,7 +28736,7 @@ doom_boolean P_CheckPosition(mobj_t* thing, fixed_t x, fixed_t y)
     numspechit = 0;
 
     if (tmflags & MF_NOCLIP)
-        return true;
+        return doom_true;
 
     // Check things first, possibly picking things up.
     // The bounding box is extended by MAXRADIUS
@@ -28757,7 +28751,7 @@ doom_boolean P_CheckPosition(mobj_t* thing, fixed_t x, fixed_t y)
     for (bx = xl; bx <= xh; bx++)
         for (by = yl; by <= yh; by++)
             if (!P_BlockThingsIterator(bx, by, PIT_CheckThing))
-                return false;
+                return doom_false;
 
     // check lines
     xl = (tmbbox[BOXLEFT] - bmaporgx) >> MAPBLOCKSHIFT;
@@ -28768,9 +28762,9 @@ doom_boolean P_CheckPosition(mobj_t* thing, fixed_t x, fixed_t y)
     for (bx = xl; bx <= xh; bx++)
         for (by = yl; by <= yh; by++)
             if (!P_BlockLinesIterator(bx, by, PIT_CheckLine))
-                return false;
+                return doom_false;
 
-    return true;
+    return doom_true;
 }
 
 
@@ -28787,28 +28781,28 @@ doom_boolean P_TryMove(mobj_t* thing, fixed_t x, fixed_t y)
     int oldside;
     line_t* ld;
 
-    floatok = false;
+    floatok = doom_false;
     if (!P_CheckPosition(thing, x, y))
-        return false;                // solid wall or thing
+        return doom_false;                // solid wall or thing
 
     if (!(thing->flags & MF_NOCLIP))
     {
         if (tmceilingz - tmfloorz < thing->height)
-            return false;        // doesn't fit
+            return doom_false;        // doesn't fit
 
-        floatok = true;
+        floatok = doom_true;
 
         if (!(thing->flags & MF_TELEPORT)
             && tmceilingz - thing->z < thing->height)
-            return false;        // mobj must lower itself to fit
+            return doom_false;        // mobj must lower itself to fit
 
         if (!(thing->flags & MF_TELEPORT)
             && tmfloorz - thing->z > 24 * FRACUNIT)
-            return false;        // too big a step up
+            return doom_false;        // too big a step up
 
         if (!(thing->flags & (MF_DROPOFF | MF_FLOAT))
             && tmfloorz - tmdropoffz > 24 * FRACUNIT)
-            return false;        // don't stand over a dropoff
+            return doom_false;        // don't stand over a dropoff
     }
 
     // the move is ok,
@@ -28841,7 +28835,7 @@ doom_boolean P_TryMove(mobj_t* thing, fixed_t x, fixed_t y)
         }
     }
 
-    return true;
+    return doom_true;
 }
 
 
@@ -28853,7 +28847,7 @@ doom_boolean P_TryMove(mobj_t* thing, fixed_t x, fixed_t y)
 // whenever a sector changes height.
 // If the thing doesn't fit,
 // the z will be set to the lowest value
-// and false will be returned.
+// and doom_false will be returned.
 //
 doom_boolean P_ThingHeightClip(mobj_t* thing)
 {
@@ -28880,9 +28874,9 @@ doom_boolean P_ThingHeightClip(mobj_t* thing)
     }
 
     if (thing->ceilingz - thing->floorz < thing->height)
-        return false;
+        return doom_false;
 
-    return true;
+    return doom_true;
 }
 
 
@@ -28962,7 +28956,7 @@ doom_boolean PTR_SlideTraverse(intercept_t* in)
     line_t* li;
 
     if (!in->isaline)
-        I_Error("Error: PTR_SlideTraverse: not a line?");
+        I_Error((char*)"Error: PTR_SlideTraverse: not a line?");
 
     li = in->d.line;
 
@@ -28971,7 +28965,7 @@ doom_boolean PTR_SlideTraverse(intercept_t* in)
         if (P_PointOnLineSide(slidemo->x, slidemo->y, li))
         {
             // don't hit the back side
-            return true;
+            return doom_true;
         }
         goto isblocking;
     }
@@ -28989,7 +28983,7 @@ doom_boolean PTR_SlideTraverse(intercept_t* in)
         goto isblocking; // too big a step up
 
     // this line doesn't block movement
-    return true;
+    return doom_true;
 
     // the line does block movement,
     // see if it is closer than best so far
@@ -29002,7 +28996,7 @@ isblocking:
         bestslideline = li;
     }
 
-    return false; // stop
+    return doom_false; // stop
 }
 
 
@@ -29134,7 +29128,7 @@ PTR_AimTraverse(intercept_t* in)
         li = in->d.line;
 
         if (!(li->flags & ML_TWOSIDED))
-            return false; // stop
+            return doom_false; // stop
 
         // Crosses a two sided line.
         // A two sided line will restrict
@@ -29142,7 +29136,7 @@ PTR_AimTraverse(intercept_t* in)
         P_LineOpening(li);
 
         if (openbottom >= opentop)
-            return false; // stop
+            return doom_false; // stop
 
         dist = FixedMul(attackrange, in->frac);
 
@@ -29161,30 +29155,30 @@ PTR_AimTraverse(intercept_t* in)
         }
 
         if (topslope <= bottomslope)
-            return false; // stop
+            return doom_false; // stop
 
-        return true; // shot continues
+        return doom_true; // shot continues
     }
 
     // shoot a thing
     th = in->d.thing;
     if (th == shootthing)
-        return true; // can't shoot self
+        return doom_true; // can't shoot self
 
     if (!(th->flags & MF_SHOOTABLE))
-        return true; // corpse or something
+        return doom_true; // corpse or something
 
     // check angles to see if the thing can be aimed at
     dist = FixedMul(attackrange, in->frac);
     thingtopslope = FixedDiv(th->z + th->height - shootz, dist);
 
     if (thingtopslope < bottomslope)
-        return true; // shot over the thing
+        return doom_true; // shot over the thing
 
     thingbottomslope = FixedDiv(th->z - shootz, dist);
 
     if (thingbottomslope > topslope)
-        return true; // shot under the thing
+        return doom_true; // shot under the thing
 
     // this thing can be hit!
     if (thingtopslope > topslope)
@@ -29196,7 +29190,7 @@ PTR_AimTraverse(intercept_t* in)
     aimslope = (thingtopslope + thingbottomslope) / 2;
     linetarget = th;
 
-    return false; // don't go any farther
+    return doom_false; // don't go any farther
 }
 
 
@@ -29249,7 +29243,7 @@ doom_boolean PTR_ShootTraverse(intercept_t* in)
         }
 
         // shot continues
-        return true;
+        return doom_true;
 
 
         // hit line
@@ -29264,39 +29258,39 @@ hitline:
         {
             // don't shoot the sky!
             if (z > li->frontsector->ceilingheight)
-                return false;
+                return doom_false;
 
             // it's a sky hack wall
             if (li->backsector && li->backsector->ceilingpic == skyflatnum)
-                return false;
+                return doom_false;
         }
 
         // Spawn bullet puffs.
         P_SpawnPuff(x, y, z);
 
         // don't go any farther
-        return false;
+        return doom_false;
     }
 
     // shoot a thing
     th = in->d.thing;
     if (th == shootthing)
-        return true; // can't shoot self
+        return doom_true; // can't shoot self
 
     if (!(th->flags & MF_SHOOTABLE))
-        return true; // corpse or something
+        return doom_true; // corpse or something
 
     // check angles to see if the thing can be aimed at
     dist = FixedMul(attackrange, in->frac);
     thingtopslope = FixedDiv(th->z + th->height - shootz, dist);
 
     if (thingtopslope < aimslope)
-        return true; // shot over the thing
+        return doom_true; // shot over the thing
 
     thingbottomslope = FixedDiv(th->z - shootz, dist);
 
     if (thingbottomslope > aimslope)
-        return true; // shot under the thing
+        return doom_true; // shot under the thing
 
 
     // hit thing
@@ -29318,7 +29312,7 @@ hitline:
         P_DamageMobj(th, shootthing, shootthing, la_damage);
 
     // don't go any farther
-    return false;
+    return doom_false;
 }
 
 
@@ -29397,10 +29391,10 @@ doom_boolean PTR_UseTraverse(intercept_t* in)
             S_StartSound(usething, sfx_noway);
 
             // can't use through a wall
-            return false;
+            return doom_false;
         }
         // not a special line, but keep checking
-        return true;
+        return doom_true;
     }
 
     side = 0;
@@ -29410,7 +29404,7 @@ doom_boolean PTR_UseTraverse(intercept_t* in)
     P_UseSpecialLine(usething, in->d.line, side);
 
     // can't use for than one special line in a row
-    return false;
+    return doom_false;
 }
 
 
@@ -29459,13 +29453,13 @@ doom_boolean PIT_RadiusAttack(mobj_t* thing)
     fixed_t dist;
 
     if (!(thing->flags & MF_SHOOTABLE))
-        return true;
+        return doom_true;
 
     // Boss spider and cyborg
     // take no damage from concussion.
     if (thing->type == MT_CYBORG
         || thing->type == MT_SPIDER)
-        return true;
+        return doom_true;
 
     dx = doom_abs(thing->x - bombspot->x);
     dy = doom_abs(thing->y - bombspot->y);
@@ -29477,7 +29471,7 @@ doom_boolean PIT_RadiusAttack(mobj_t* thing)
         dist = 0;
 
     if (dist >= bombdamage)
-        return true;        // out of range
+        return doom_true;        // out of range
 
     if (P_CheckSight(thing, bombspot))
     {
@@ -29485,7 +29479,7 @@ doom_boolean PIT_RadiusAttack(mobj_t* thing)
         P_DamageMobj(thing, bombspot, bombsource, bombdamage - dist);
     }
 
-    return true;
+    return doom_true;
 }
 
 
@@ -29526,10 +29520,10 @@ void P_RadiusAttack(mobj_t* spot, mobj_t* source, int damage)
 // call this routine to adjust the positions
 // of all things that touch the sector.
 //
-// If anything doesn't fit anymore, true will be returned.
-// If crunch is true, they will take damage
+// If anything doesn't fit anymore, doom_true will be returned.
+// If crunch is doom_true, they will take damage
 //  as they are being crushed.
-// If Crunch is false, you should set the sector height back
+// If Crunch is doom_false, you should set the sector height back
 //  the way it was and call P_ChangeSector again
 //  to undo the changes.
 //
@@ -29544,7 +29538,7 @@ doom_boolean PIT_ChangeSector(mobj_t* thing)
     if (P_ThingHeightClip(thing))
     {
         // keep checking
-        return true;
+        return doom_true;
     }
 
 
@@ -29558,7 +29552,7 @@ doom_boolean PIT_ChangeSector(mobj_t* thing)
         thing->radius = 0;
 
         // keep checking
-        return true;
+        return doom_true;
     }
 
     // crunch dropped items
@@ -29567,16 +29561,16 @@ doom_boolean PIT_ChangeSector(mobj_t* thing)
         P_RemoveMobj(thing);
 
         // keep checking
-        return true;
+        return doom_true;
     }
 
     if (!(thing->flags & MF_SHOOTABLE))
     {
         // assume it is bloody gibs or something
-        return true;
+        return doom_true;
     }
 
-    nofit = true;
+    nofit = doom_true;
 
     if (crushchange && !(leveltime & 3))
     {
@@ -29592,7 +29586,7 @@ doom_boolean PIT_ChangeSector(mobj_t* thing)
     }
 
     // keep checking (crush other things)        
-    return true;
+    return doom_true;
 }
 
 
@@ -29604,7 +29598,7 @@ doom_boolean P_ChangeSector(sector_t* sector, doom_boolean crunch)
     int x;
     int y;
 
-    nofit = false;
+    nofit = doom_false;
     crushchange = crunch;
 
     // re-check heights for all things near the moving sector
@@ -29973,8 +29967,8 @@ void P_SetThingPosition(mobj_t* thing)
 // BLOCK MAP ITERATORS
 // For each line/thing in the given mapblock,
 // call the passed PIT_* function.
-// If the function returns false,
-// exit with false without checking anything else.
+// If the function returns doom_false,
+// exit with doom_false without checking anything else.
 //
 
 //
@@ -29996,7 +29990,7 @@ doom_boolean P_BlockLinesIterator(int x, int y, doom_boolean(*func)(line_t*))
         || x >= bmapwidth
         || y >= bmapheight)
     {
-        return true;
+        return doom_true;
     }
 
     offset = y * bmapwidth + x;
@@ -30013,9 +30007,9 @@ doom_boolean P_BlockLinesIterator(int x, int y, doom_boolean(*func)(line_t*))
         ld->validcount = validcount;
 
         if (!func(ld))
-            return false;
+            return doom_false;
     }
-    return true;        // everything was checked
+    return doom_true;        // everything was checked
 }
 
 
@@ -30031,7 +30025,7 @@ doom_boolean P_BlockThingsIterator(int x, int y, doom_boolean(*func)(mobj_t*))
         || x >= bmapwidth
         || y >= bmapheight)
     {
-        return true;
+        return doom_true;
     }
 
 
@@ -30040,9 +30034,9 @@ doom_boolean P_BlockThingsIterator(int x, int y, doom_boolean(*func)(mobj_t*))
          mobj = mobj->bnext)
     {
         if (!func(mobj))
-            return false;
+            return doom_false;
     }
-    return true;
+    return doom_true;
 }
 
 
@@ -30058,7 +30052,7 @@ doom_boolean P_BlockThingsIterator(int x, int y, doom_boolean(*func)(mobj_t*))
 //
 // A line is crossed if its endpoints
 // are on opposite sides of the trace.
-// Returns true if earlyout and a solid line hit.
+// Returns doom_true if earlyout and a solid line hit.
 //
 doom_boolean PIT_AddLineIntercepts(line_t* ld)
 {
@@ -30083,29 +30077,29 @@ doom_boolean PIT_AddLineIntercepts(line_t* ld)
     }
 
     if (s1 == s2)
-        return true; // line isn't crossed
+        return doom_true; // line isn't crossed
 
     // hit the line
     P_MakeDivline(ld, &dl);
     frac = P_InterceptVector(&trace, &dl);
 
     if (frac < 0)
-        return true; // behind source
+        return doom_true; // behind source
 
     // try to early out the check
     if (earlyout
         && frac < FRACUNIT
         && !ld->backsector)
     {
-        return false; // stop checking
+        return doom_false; // stop checking
     }
 
     intercept_p->frac = frac;
-    intercept_p->isaline = true;
+    intercept_p->isaline = doom_true;
     intercept_p->d.line = ld;
     intercept_p++;
 
-    return true; // continue
+    return doom_true; // continue
 }
 
 
@@ -30152,7 +30146,7 @@ doom_boolean PIT_AddThingIntercepts(mobj_t* thing)
     s2 = P_PointOnDivlineSide(x2, y2, &trace);
 
     if (s1 == s2)
-        return true; // line isn't crossed
+        return doom_true; // line isn't crossed
 
     dl.x = x1;
     dl.y = y1;
@@ -30162,20 +30156,20 @@ doom_boolean PIT_AddThingIntercepts(mobj_t* thing)
     frac = P_InterceptVector(&trace, &dl);
 
     if (frac < 0)
-        return true; // behind source
+        return doom_true; // behind source
 
     intercept_p->frac = frac;
-    intercept_p->isaline = false;
+    intercept_p->isaline = doom_false;
     intercept_p->d.thing = thing;
     intercept_p++;
 
-    return true; // keep going
+    return doom_true; // keep going
 }
 
 
 //
 // P_TraverseIntercepts
-// Returns true if the traverser function returns true
+// Returns doom_true if the traverser function returns doom_true
 // for all lines.
 // 
 doom_boolean P_TraverseIntercepts(traverser_t func, fixed_t maxfrac)
@@ -30202,7 +30196,7 @@ doom_boolean P_TraverseIntercepts(traverser_t func, fixed_t maxfrac)
         }
 
         if (dist > maxfrac)
-            return true;        // checked everything in range                
+            return doom_true;        // checked everything in range                
 
 #if 0  // UNUSED
         {
@@ -30212,17 +30206,17 @@ doom_boolean P_TraverseIntercepts(traverser_t func, fixed_t maxfrac)
                 if (scan->frac > maxfrac)
                     *in++ = *scan;
             intercept_p = in;
-            return false;
+            return doom_false;
         }
 #endif
 
         if (!func(in))
-            return false;        // don't bother going farther
+            return doom_false;        // don't bother going farther
 
         in->frac = DOOM_MAXINT;
     }
 
-    return true;                // everything was traversed
+    return doom_true;                // everything was traversed
 }
 
 
@@ -30230,7 +30224,7 @@ doom_boolean P_TraverseIntercepts(traverser_t func, fixed_t maxfrac)
 // P_PathTraverse
 // Traces a line from x1,y1 to x2,y2,
 // calling the traverser function for each.
-// Returns true if the traverser function returns true
+// Returns doom_true if the traverser function returns doom_true
 // for all lines.
 //
 doom_boolean P_PathTraverse(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2, int flags, doom_boolean(*trav) (intercept_t*))
@@ -30335,13 +30329,13 @@ doom_boolean P_PathTraverse(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2, int 
         if (flags & PT_ADDLINES)
         {
             if (!P_BlockLinesIterator(mapx, mapy, PIT_AddLineIntercepts))
-                return false;        // early out
+                return doom_false;        // early out
         }
 
         if (flags & PT_ADDTHINGS)
         {
             if (!P_BlockThingsIterator(mapx, mapy, PIT_AddThingIntercepts))
-                return false;        // early out
+                return doom_false;        // early out
         }
 
         if (mapx == xt2
@@ -30371,7 +30365,7 @@ doom_boolean P_PathTraverse(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2, int 
 
 //
 // P_SetMobjState
-// Returns true if the mobj is still present.
+// Returns doom_true if the mobj is still present.
 //
 mapthing_t itemrespawnque[ITEMQUESIZE];
 int itemrespawntime[ITEMQUESIZE];
@@ -30396,7 +30390,7 @@ doom_boolean P_SetMobjState(mobj_t* mobj, statenum_t state)
         {
             mobj->state = (state_t*)S_NULL;
             P_RemoveMobj(mobj);
-            return false;
+            return doom_false;
         }
 
         st = &states[state];
@@ -30413,7 +30407,7 @@ doom_boolean P_SetMobjState(mobj_t* mobj, statenum_t state)
         state = st->nextstate;
     } while (!mobj->tics);
 
-    return true;
+    return doom_true;
 }
 
 
@@ -30424,7 +30418,7 @@ void P_ExplodeMissile(mobj_t* mo)
 {
     mo->momx = mo->momy = mo->momz = 0;
 
-    P_SetMobjState(mo, mobjinfo[mo->type].deathstate);
+    P_SetMobjState(mo, (statenum_t)mobjinfo[mo->type].deathstate);
 
     mo->tics -= P_Random() & 3;
 
@@ -30457,7 +30451,7 @@ void P_XYMovement(mobj_t* mo)
             mo->flags &= ~MF_SKULLFLY;
             mo->momx = mo->momy = mo->momz = 0;
 
-            P_SetMobjState(mo, mo->info->spawnstate);
+            P_SetMobjState(mo, (statenum_t)mo->info->spawnstate);
         }
         return;
     }
@@ -30810,7 +30804,7 @@ mobj_t* P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
     state_t* st;
     mobjinfo_t* info;
 
-    mobj = Z_Malloc(sizeof(*mobj), PU_LEVEL, 0);
+    mobj = (mobj_s*)Z_Malloc(sizeof(*mobj), PU_LEVEL, 0);
     doom_memset(mobj, 0, sizeof(*mobj));
     info = &mobjinfo[type];
 
@@ -30937,7 +30931,7 @@ void P_RespawnSpecials(void)
     else
         z = ONFLOORZ;
 
-    mo = P_SpawnMobj(x, y, z, i);
+    mo = P_SpawnMobj(x, y, z, (mobjtype_t)i);
     mo->spawnpoint = *mthing;
     mo->angle = ANG45 * (mthing->angle / 45);
 
@@ -31001,7 +30995,7 @@ void P_SpawnPlayer(mapthing_t* mthing)
     // give all cards in death match mode
     if (deathmatch)
         for (i = 0; i < NUMCARDS; i++)
-            p->cards[i] = true;
+            p->cards[i] = doom_true;
 
     if (mthing->type - 1 == consoleplayer)
     {
@@ -31106,7 +31100,7 @@ void P_SpawnMapThing(mapthing_t* mthing)
     else
         z = ONFLOORZ;
 
-    mobj = P_SpawnMobj(x, y, z, i);
+    mobj = P_SpawnMobj(x, y, z, (mobjtype_t)i);
     mobj->spawnpoint = *mthing;
 
     if (mobj->tics > 0)
@@ -31350,7 +31344,7 @@ void T_PlatRaise(plat_t* plat)
             break;
 
         case down:
-            res = T_MovePlane(plat->sector, plat->speed, plat->low, false, 0, -1);
+            res = T_MovePlane(plat->sector, plat->speed, plat->low, doom_false, 0, -1);
 
             if (res == pastdest)
             {
@@ -31409,14 +31403,14 @@ int EV_DoPlat(line_t* line, plattype_e type, int amount)
 
         // Find lowest & highest floors around sector
         rtn = 1;
-        plat = Z_Malloc(sizeof(*plat), PU_LEVSPEC, 0);
+        plat = (plat_t*)Z_Malloc(sizeof(*plat), PU_LEVSPEC, 0);
         P_AddThinker(&plat->thinker);
 
         plat->type = type;
         plat->sector = sec;
         plat->sector->specialdata = plat;
         plat->thinker.function.acp1 = (actionf_p1)T_PlatRaise;
-        plat->crush = false;
+        plat->crush = doom_false;
         plat->tag = line->tag;
 
         switch (type)
@@ -31482,7 +31476,7 @@ int EV_DoPlat(line_t* line, plattype_e type, int amount)
                     plat->high = sec->floorheight;
 
                 plat->wait = 35 * PLATWAIT;
-                plat->status = P_Random() & 1;
+                plat->status = (plat_e)(P_Random() & 1);
 
                 S_StartSound((mobj_t*)&sec->soundorg, sfx_pstart);
                 break;
@@ -31532,7 +31526,7 @@ void P_AddActivePlat(plat_t* plat)
             activeplats[i] = plat;
             return;
         }
-    I_Error("Error: P_AddActivePlat: no more plats!");
+    I_Error((char*)"Error: P_AddActivePlat: no more plats!");
 }
 
 void P_RemoveActivePlat(plat_t* plat)
@@ -31547,7 +31541,7 @@ void P_RemoveActivePlat(plat_t* plat)
 
             return;
         }
-    I_Error("Error: P_RemoveActivePlat: can't find plat!");
+    I_Error((char*)"Error: P_RemoveActivePlat: can't find plat!");
 }
 #define LOWERSPEED (FRACUNIT*6)
 #define RAISESPEED (FRACUNIT*6)
@@ -31626,7 +31620,7 @@ void P_BringUpWeapon(player_t* player)
     if (player->pendingweapon == wp_chainsaw)
         S_StartSound(player->mo, sfx_sawup);
 
-    newstate = weaponinfo[player->pendingweapon].upstate;
+    newstate = (statenum_t)weaponinfo[player->pendingweapon].upstate;
 
     player->pendingweapon = wp_nochange;
     player->psprites[ps_weapon].sy = WEAPONBOTTOM;
@@ -31637,7 +31631,7 @@ void P_BringUpWeapon(player_t* player)
 
 //
 // P_CheckAmmo
-// Returns true if there is enough ammo to shoot.
+// Returns doom_true if there is enough ammo to shoot.
 // If not, selects the next weapon to use.
 //
 doom_boolean P_CheckAmmo(player_t* player)
@@ -31658,7 +31652,7 @@ doom_boolean P_CheckAmmo(player_t* player)
     // Some do not need ammunition anyway.
     // Return if current ammunition sufficient.
     if (ammo == am_noammo || player->ammo[ammo] >= count)
-        return true;
+        return doom_true;
 
     // Out of ammo, pick a weapon to change to.
     // Preferences are set here.
@@ -31716,9 +31710,9 @@ doom_boolean P_CheckAmmo(player_t* player)
     // Now set appropriate weapon overlay.
     P_SetPsprite(player,
                  ps_weapon,
-                 weaponinfo[player->readyweapon].downstate);
+                 (statenum_t)weaponinfo[player->readyweapon].downstate);
 
-    return false;
+    return doom_false;
 }
 
 
@@ -31733,7 +31727,7 @@ void P_FireWeapon(player_t* player)
         return;
 
     P_SetMobjState(player->mo, S_PLAY_ATK1);
-    newstate = weaponinfo[player->readyweapon].atkstate;
+    newstate = (statenum_t)weaponinfo[player->readyweapon].atkstate;
     P_SetPsprite(player, ps_weapon, newstate);
     P_NoiseAlert(player->mo, player->mo);
 
@@ -31753,7 +31747,7 @@ void P_DropWeapon(player_t* player)
 {
     P_SetPsprite(player,
                  ps_weapon,
-                 weaponinfo[player->readyweapon].downstate);
+                 (statenum_t)weaponinfo[player->readyweapon].downstate);
 }
 
 
@@ -31788,7 +31782,7 @@ void A_WeaponReady(player_t* player, pspdef_t* psp)
     {
         // change weapon
         //  (pending weapon should allready be validated)
-        newstate = weaponinfo[player->readyweapon].downstate;
+        newstate = (statenum_t)weaponinfo[player->readyweapon].downstate;
         P_SetPsprite(player, ps_weapon, newstate);
         return;
     }
@@ -31801,13 +31795,13 @@ void A_WeaponReady(player_t* player, pspdef_t* psp)
             || (player->readyweapon != wp_missile
                 && player->readyweapon != wp_bfg))
         {
-            player->attackdown = true;
+            player->attackdown = doom_true;
             P_FireWeapon(player);
             return;
         }
     }
     else
-        player->attackdown = false;
+        player->attackdown = doom_false;
 
     // bob the weapon based on movement speed
     angle = (128 * leveltime) & FINEMASK;
@@ -31900,7 +31894,7 @@ void A_Raise(player_t* player, pspdef_t* psp)
 
     // The weapon has been raised all the way,
     //  so change to the ready state.
-    newstate = weaponinfo[player->readyweapon].readystate;
+    newstate = (statenum_t)weaponinfo[player->readyweapon].readystate;
 
     P_SetPsprite(player, ps_weapon, newstate);
 }
@@ -31912,7 +31906,7 @@ void A_Raise(player_t* player, pspdef_t* psp)
 void A_GunFlash(player_t* player, pspdef_t* psp)
 {
     P_SetMobjState(player->mo, S_PLAY_ATK2);
-    P_SetPsprite(player, ps_flash, weaponinfo[player->readyweapon].flashstate);
+    P_SetPsprite(player, ps_flash, (statenum_t)weaponinfo[player->readyweapon].flashstate);
 }
 
 
@@ -32025,7 +32019,7 @@ void A_FirePlasma(player_t* player, pspdef_t* psp)
 
     P_SetPsprite(player,
                  ps_flash,
-                 weaponinfo[player->readyweapon].flashstate + (P_Random() & 1));
+                 (statenum_t)(weaponinfo[player->readyweapon].flashstate + (P_Random() & 1)));
 
     P_SpawnPlayerMissile(player->mo, MT_PLASMA);
 }
@@ -32087,7 +32081,7 @@ void A_FirePistol(player_t* player, pspdef_t* psp)
 
     P_SetPsprite(player,
                  ps_flash,
-                 weaponinfo[player->readyweapon].flashstate);
+                 (statenum_t)weaponinfo[player->readyweapon].flashstate);
 
     P_BulletSlope(player->mo);
     P_GunShot(player->mo, !player->refire);
@@ -32108,12 +32102,12 @@ void A_FireShotgun(player_t* player, pspdef_t* psp)
 
     P_SetPsprite(player,
                  ps_flash,
-                 weaponinfo[player->readyweapon].flashstate);
+                 (statenum_t)weaponinfo[player->readyweapon].flashstate);
 
     P_BulletSlope(player->mo);
 
     for (i = 0; i < 7; i++)
-        P_GunShot(player->mo, false);
+        P_GunShot(player->mo, doom_false);
 }
 
 
@@ -32134,7 +32128,7 @@ void A_FireShotgun2(player_t* player, pspdef_t* psp)
 
     P_SetPsprite(player,
                  ps_flash,
-                 weaponinfo[player->readyweapon].flashstate);
+                 (statenum_t)weaponinfo[player->readyweapon].flashstate);
 
     P_BulletSlope(player->mo);
 
@@ -32166,9 +32160,9 @@ void A_FireCGun(player_t* player, pspdef_t* psp)
 
     P_SetPsprite(player,
                  ps_flash,
-                 weaponinfo[player->readyweapon].flashstate
+                 (statenum_t)(weaponinfo[player->readyweapon].flashstate
                  + psp->state
-                 - &states[S_CHAIN1]);
+                 - &states[S_CHAIN1]));
 
     P_BulletSlope(player->mo);
 
@@ -32545,7 +32539,7 @@ void P_UnArchiveThinkers(void)
 
             case tc_mobj:
                 PADSAVEP();
-                mobj = Z_Malloc(sizeof(*mobj), PU_LEVEL, 0);
+                mobj = (mobj_s*)Z_Malloc(sizeof(*mobj), PU_LEVEL, 0);
                 doom_memcpy(mobj, save_p, sizeof(*mobj));
                 save_p += sizeof(*mobj);
                 mobj->state = &states[(long long)mobj->state];
@@ -32746,7 +32740,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_ceiling:
                 PADSAVEP();
-                ceiling = Z_Malloc(sizeof(*ceiling), PU_LEVEL, 0);
+                ceiling = (ceiling_t*)Z_Malloc(sizeof(*ceiling), PU_LEVEL, 0);
                 doom_memcpy(ceiling, save_p, sizeof(*ceiling));
                 save_p += sizeof(*ceiling);
                 ceiling->sector = &sectors[(long long)ceiling->sector];
@@ -32761,7 +32755,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_door:
                 PADSAVEP();
-                door = Z_Malloc(sizeof(*door), PU_LEVEL, 0);
+                door = (vldoor_t*)Z_Malloc(sizeof(*door), PU_LEVEL, 0);
                 doom_memcpy(door, save_p, sizeof(*door));
                 save_p += sizeof(*door);
                 door->sector = &sectors[(long long)door->sector];
@@ -32772,7 +32766,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_floor:
                 PADSAVEP();
-                floor = Z_Malloc(sizeof(*floor), PU_LEVEL, 0);
+                floor = (floormove_t*)Z_Malloc(sizeof(*floor), PU_LEVEL, 0);
                 doom_memcpy(floor, save_p, sizeof(*floor));
                 save_p += sizeof(*floor);
                 floor->sector = &sectors[(long long)floor->sector];
@@ -32783,7 +32777,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_plat:
                 PADSAVEP();
-                plat = Z_Malloc(sizeof(*plat), PU_LEVEL, 0);
+                plat = (plat_t*)Z_Malloc(sizeof(*plat), PU_LEVEL, 0);
                 doom_memcpy(plat, save_p, sizeof(*plat));
                 save_p += sizeof(*plat);
                 plat->sector = &sectors[(long long)plat->sector];
@@ -32798,7 +32792,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_flash:
                 PADSAVEP();
-                flash = Z_Malloc(sizeof(*flash), PU_LEVEL, 0);
+                flash = (lightflash_t*)Z_Malloc(sizeof(*flash), PU_LEVEL, 0);
                 doom_memcpy(flash, save_p, sizeof(*flash));
                 save_p += sizeof(*flash);
                 flash->sector = &sectors[(long long)flash->sector];
@@ -32808,7 +32802,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_strobe:
                 PADSAVEP();
-                strobe = Z_Malloc(sizeof(*strobe), PU_LEVEL, 0);
+                strobe = (strobe_t*)Z_Malloc(sizeof(*strobe), PU_LEVEL, 0);
                 doom_memcpy(strobe, save_p, sizeof(*strobe));
                 save_p += sizeof(*strobe);
                 strobe->sector = &sectors[(long long)strobe->sector];
@@ -32818,7 +32812,7 @@ void P_UnArchiveSpecials(void)
 
             case tc_glow:
                 PADSAVEP();
-                glow = Z_Malloc(sizeof(*glow), PU_LEVEL, 0);
+                glow = (glow_t*)Z_Malloc(sizeof(*glow), PU_LEVEL, 0);
                 doom_memcpy(glow, save_p, sizeof(*glow));
                 save_p += sizeof(*glow);
                 glow->sector = &sectors[(long long)glow->sector];
@@ -32918,10 +32912,10 @@ void P_LoadVertexes(int lump)
     numvertexes = W_LumpLength(lump) / sizeof(mapvertex_t);
 
     // Allocate zone memory for buffer.
-    vertexes = Z_Malloc(numvertexes * sizeof(vertex_t), PU_LEVEL, 0);
+    vertexes = (vertex_t*)Z_Malloc(numvertexes * sizeof(vertex_t), PU_LEVEL, 0);
 
     // Load data into cache.
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     ml = (mapvertex_t*)data;
     li = vertexes;
@@ -32953,9 +32947,9 @@ void P_LoadSegs(int lump)
     int side;
 
     numsegs = W_LumpLength(lump) / sizeof(mapseg_t);
-    segs = Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
+    segs = (seg_t*)Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
     doom_memset(segs, 0, numsegs * sizeof(seg_t));
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     ml = (mapseg_t*)data;
     li = segs;
@@ -32993,8 +32987,8 @@ void P_LoadSubsectors(int lump)
     subsector_t* ss;
 
     numsubsectors = W_LumpLength(lump) / sizeof(mapsubsector_t);
-    subsectors = Z_Malloc(numsubsectors * sizeof(subsector_t), PU_LEVEL, 0);
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    subsectors = (subsector_t*)Z_Malloc(numsubsectors * sizeof(subsector_t), PU_LEVEL, 0);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     ms = (mapsubsector_t*)data;
     doom_memset(subsectors, 0, numsubsectors * sizeof(subsector_t));
@@ -33021,9 +33015,9 @@ void P_LoadSectors(int lump)
     sector_t* ss;
 
     numsectors = W_LumpLength(lump) / sizeof(mapsector_t);
-    sectors = Z_Malloc(numsectors * sizeof(sector_t), PU_LEVEL, 0);
+    sectors = (sector_t*)Z_Malloc(numsectors * sizeof(sector_t), PU_LEVEL, 0);
     doom_memset(sectors, 0, numsectors * sizeof(sector_t));
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     ms = (mapsector_t*)data;
     ss = sectors;
@@ -33056,8 +33050,8 @@ void P_LoadNodes(int lump)
     node_t* no;
 
     numnodes = W_LumpLength(lump) / sizeof(mapnode_t);
-    nodes = Z_Malloc(numnodes * sizeof(node_t), PU_LEVEL, 0);
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    nodes = (node_t*)Z_Malloc(numnodes * sizeof(node_t), PU_LEVEL, 0);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     mn = (mapnode_t*)data;
     no = nodes;
@@ -33091,13 +33085,13 @@ void P_LoadThings(int lump)
     int numthings;
     doom_boolean spawn;
 
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
     numthings = W_LumpLength(lump) / sizeof(mapthing_t);
 
     mt = (mapthing_t*)data;
     for (i = 0; i < numthings; i++, mt++)
     {
-        spawn = true;
+        spawn = doom_true;
 
         // Do not spawn cool, new monsters if !commercial
         if (gamemode != commercial)
@@ -33114,11 +33108,11 @@ void P_LoadThings(int lump)
                 case 65:        // Former Human Commando
                 case 66:        // Revenant
                 case 84:        // Wolf SS
-                    spawn = false;
+                    spawn = doom_false;
                     break;
             }
         }
-        if (spawn == false)
+        if (spawn == doom_false)
             break;
 
         // Do spawn all other stuff. 
@@ -33149,9 +33143,9 @@ void P_LoadLineDefs(int lump)
     vertex_t* v2;
 
     numlines = W_LumpLength(lump) / sizeof(maplinedef_t);
-    lines = Z_Malloc(numlines * sizeof(line_t), PU_LEVEL, 0);
+    lines = (line_t*)Z_Malloc(numlines * sizeof(line_t), PU_LEVEL, 0);
     doom_memset(lines, 0, numlines * sizeof(line_t));
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     mld = (maplinedef_t*)data;
     ld = lines;
@@ -33228,9 +33222,9 @@ void P_LoadSideDefs(int lump)
     side_t* sd;
 
     numsides = W_LumpLength(lump) / sizeof(mapsidedef_t);
-    sides = Z_Malloc(numsides * sizeof(side_t), PU_LEVEL, 0);
+    sides = (side_t*)Z_Malloc(numsides * sizeof(side_t), PU_LEVEL, 0);
     doom_memset(sides, 0, numsides * sizeof(side_t));
-    data = W_CacheLumpNum(lump, PU_STATIC);
+    data = (byte*)W_CacheLumpNum(lump, PU_STATIC);
 
     msd = (mapsidedef_t*)data;
     sd = sides;
@@ -33256,7 +33250,7 @@ void P_LoadBlockMap(int lump)
     int i;
     int count;
 
-    blockmaplump = W_CacheLumpNum(lump, PU_LEVEL);
+    blockmaplump = (short*)W_CacheLumpNum(lump, PU_LEVEL);
     blockmap = blockmaplump + 4;
     count = W_LumpLength(lump) / 2;
 
@@ -33270,7 +33264,7 @@ void P_LoadBlockMap(int lump)
 
     // clear out mobj chains
     count = sizeof(*blocklinks) * bmapwidth * bmapheight;
-    blocklinks = Z_Malloc(count, PU_LEVEL, 0);
+    blocklinks = (mobj_t**)Z_Malloc(count, PU_LEVEL, 0);
     doom_memset(blocklinks, 0, count);
 }
 
@@ -33317,7 +33311,7 @@ void P_GroupLines(void)
     }
 
     // build line tables for each sector        
-    linebuffer = Z_Malloc(total * sizeof(line_t*), PU_LEVEL, 0);
+    linebuffer = (line_t**)Z_Malloc(total * sizeof(line_t*), PU_LEVEL, 0);
     sector = sectors;
     for (i = 0; i < numsectors; i++, sector++)
     {
@@ -33334,7 +33328,7 @@ void P_GroupLines(void)
             }
         }
         if (linebuffer - sector->lines != sector->linecount)
-            I_Error("Error: P_GroupLines: miscounted");
+            I_Error((char*)"Error: P_GroupLines: miscounted");
 
         // set the degenmobj_t to the middle of the bounding box
         sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
@@ -33432,7 +33426,7 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     P_LoadNodes(lumpnum + ML_NODES);
     P_LoadSegs(lumpnum + ML_SEGS);
 
-    rejectmatrix = W_CacheLumpNum(lumpnum + ML_REJECT, PU_LEVEL);
+    rejectmatrix = (byte*)W_CacheLumpNum(lumpnum + ML_REJECT, PU_LEVEL);
     P_GroupLines();
 
     bodyqueslot = 0;
@@ -33557,7 +33551,7 @@ fixed_t P_InterceptVector2(divline_t* v2, divline_t* v1)
 
 //
 // P_CrossSubsector
-// Returns true
+// Returns doom_true
 //  if strace crosses the given subsector successfully.
 //
 doom_boolean P_CrossSubsector(int num)
@@ -33632,7 +33626,7 @@ doom_boolean P_CrossSubsector(int num)
         // stop because it is not two sided anyway
         // might do this after updating validcount?
         if (!(line->flags & ML_TWOSIDED))
-            return false;
+            return doom_false;
 
         // crosses a two sided line
         front = seg->frontsector;
@@ -33658,7 +33652,7 @@ doom_boolean P_CrossSubsector(int num)
 
         // quick test for totally closed doors
         if (openbottom >= opentop)
-            return false; // stop
+            return doom_false; // stop
 
         frac = P_InterceptVector2(&strace, &divl);
 
@@ -33677,17 +33671,17 @@ doom_boolean P_CrossSubsector(int num)
         }
 
         if (topslope <= bottomslope)
-            return false; // stop                                
+            return doom_false; // stop                                
     }
 
     // passed the subsector ok
-    return true;
+    return doom_true;
 }
 
 
 //
 // P_CrossBSPNode
-// Returns true
+// Returns doom_true
 //  if strace crosses the given node successfully.
 //
 doom_boolean P_CrossBSPNode(int bspnum)
@@ -33712,13 +33706,13 @@ doom_boolean P_CrossBSPNode(int bspnum)
 
     // cross the starting side
     if (!P_CrossBSPNode(bsp->children[side]))
-        return false;
+        return doom_false;
 
     // the partition plane is crossed here
     if (side == P_DivlineSide(t2x, t2y, (divline_t*)bsp))
     {
         // the line doesn't touch the other side
-        return true;
+        return doom_true;
     }
 
     // cross the ending side                
@@ -33728,7 +33722,7 @@ doom_boolean P_CrossBSPNode(int bspnum)
 
 //
 // P_CheckSight
-// Returns true
+// Returns doom_true
 //  if a straight line between t1 and t2 is unobstructed.
 // Uses REJECT.
 //
@@ -33755,7 +33749,7 @@ doom_boolean P_CheckSight(mobj_t* t1, mobj_t* t2)
         sightcounts[0]++;
 
         // can't possibly be connected
-        return false;
+        return doom_false;
     }
 
     // An unobstructed LOS is possible.
@@ -33803,7 +33797,7 @@ typedef struct
 //
 typedef struct
 {
-    doom_boolean istexture; // if false, it is a flat
+    doom_boolean istexture; // if doom_false, it is a flat
     char endname[9];
     char startname[9];
     int speed;
@@ -33835,35 +33829,35 @@ extern anim_t* lastanim;
 //
 animdef_t animdefs[] =
 {
-    {false,       "NUKAGE3",      "NUKAGE1",      8},
-    {false,       "FWATER4",      "FWATER1",      8},
-    {false,       "SWATER4",      "SWATER1",      8},
-    {false,       "LAVA4",        "LAVA1",        8},
-    {false,       "BLOOD3",       "BLOOD1",       8},
+    {doom_false,       "NUKAGE3",      "NUKAGE1",      8},
+    {doom_false,       "FWATER4",      "FWATER1",      8},
+    {doom_false,       "SWATER4",      "SWATER1",      8},
+    {doom_false,       "LAVA4",        "LAVA1",        8},
+    {doom_false,       "BLOOD3",       "BLOOD1",       8},
 
     // DOOM II flat animations.
-    {false,       "RROCK08",      "RROCK05",      8},
-    {false,       "SLIME04",      "SLIME01",      8},
-    {false,       "SLIME08",      "SLIME05",      8},
-    {false,       "SLIME12",      "SLIME09",      8},
+    {doom_false,       "RROCK08",      "RROCK05",      8},
+    {doom_false,       "SLIME04",      "SLIME01",      8},
+    {doom_false,       "SLIME08",      "SLIME05",      8},
+    {doom_false,       "SLIME12",      "SLIME09",      8},
 
-    {true,        "BLODGR4",      "BLODGR1",      8},
-    {true,        "SLADRIP3",     "SLADRIP1",     8},
+    {doom_true,        "BLODGR4",      "BLODGR1",      8},
+    {doom_true,        "SLADRIP3",     "SLADRIP1",     8},
 
-    {true,        "BLODRIP4",     "BLODRIP1",     8},
-    {true,        "FIREWALL",     "FIREWALA",     8},
-    {true,        "GSTFONT3",     "GSTFONT1",     8},
-    {true,        "FIRELAVA",     "FIRELAV3",     8},
-    {true,        "FIREMAG3",     "FIREMAG1",     8},
-    {true,        "FIREBLU2",     "FIREBLU1",     8},
-    {true,        "ROCKRED3",     "ROCKRED1",     8},
+    {doom_true,        "BLODRIP4",     "BLODRIP1",     8},
+    {doom_true,        "FIREWALL",     "FIREWALA",     8},
+    {doom_true,        "GSTFONT3",     "GSTFONT1",     8},
+    {doom_true,        "FIRELAVA",     "FIRELAV3",     8},
+    {doom_true,        "FIREMAG3",     "FIREMAG1",     8},
+    {doom_true,        "FIREBLU2",     "FIREBLU1",     8},
+    {doom_true,        "ROCKRED3",     "ROCKRED1",     8},
 
-    {true,        "BFALL4",       "BFALL1",       8},
-    {true,        "SFALL4",       "SFALL1",       8},
-    {true,        "WFALL4",       "WFALL1",       8},
-    {true,        "DBRAIN4",      "DBRAIN1",      8},
+    {doom_true,        "BFALL4",       "BFALL1",       8},
+    {doom_true,        "SFALL4",       "SFALL1",       8},
+    {doom_true,        "WFALL4",       "WFALL1",       8},
+    {doom_true,        "DBRAIN4",      "DBRAIN1",      8},
 
-    {-1}
+    {(doom_boolean)-1}
 };
 
 anim_t anims[MAXANIMS];
@@ -34741,7 +34735,7 @@ void P_PlayerInSpecialSector(player_t* player)
         case 9:
             // SECRET SECTOR
             player->secretcount++;
-            player->message = "A secret is revealed!";
+            player->message = (char*)"A secret is revealed!";
             S_StartSound(0, sfx_getpow);
             sector->special = 0;
             break;
@@ -34785,7 +34779,7 @@ void P_UpdateSpecials(void)
     line_t* line;
 
     // LEVEL TIMER
-    if (levelTimer == true)
+    if (levelTimer == doom_true)
     {
         levelTimeCount--;
         if (!levelTimeCount)
@@ -34882,12 +34876,12 @@ int EV_DoDonut(line_t* line)
             s3 = s2->lines[i]->backsector;
 
             //        Spawn rising slime
-            floor = Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
+            floor = (floormove_t*)Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
             P_AddThinker(&floor->thinker);
             s2->specialdata = floor;
             floor->thinker.function.acp1 = (actionf_p1)T_MoveFloor;
             floor->type = donutRaise;
-            floor->crush = false;
+            floor->crush = doom_false;
             floor->direction = 1;
             floor->sector = s2;
             floor->speed = FLOORSPEED / 2;
@@ -34896,12 +34890,12 @@ int EV_DoDonut(line_t* line)
             floor->floordestheight = s3->floorheight;
 
             //        Spawn lowering donut-hole
-            floor = Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
+            floor = (floormove_t*)Z_Malloc(sizeof(*floor), PU_LEVSPEC, 0);
             P_AddThinker(&floor->thinker);
             s1->specialdata = floor;
             floor->thinker.function.acp1 = (actionf_p1)T_MoveFloor;
             floor->type = lowerFloor;
-            floor->crush = false;
+            floor->crush = doom_false;
             floor->direction = -1;
             floor->sector = s1;
             floor->speed = FLOORSPEED / 2;
@@ -34932,26 +34926,26 @@ void P_SpawnSpecials(void)
     int episode;
 
     episode = 1;
-    if (W_CheckNumForName("texture2") >= 0)
+    if (W_CheckNumForName((char*)"texture2") >= 0)
         episode = 2;
 
 
     // See if -TIMER needs to be used.
-    levelTimer = false;
+    levelTimer = doom_false;
 
-    i = M_CheckParm("-avg");
+    i = M_CheckParm((char*)"-avg");
     if (i && deathmatch)
     {
-        levelTimer = true;
+        levelTimer = doom_true;
         levelTimeCount = 20 * 60 * 35;
     }
 
-    i = M_CheckParm("-timer");
+    i = M_CheckParm((char*)"-timer");
     if (i && deathmatch)
     {
         int time;
         time = doom_atoi(myargv[i + 1]) * 60 * 35;
-        levelTimer = true;
+        levelTimer = doom_true;
         levelTimeCount = time;
     }
 
@@ -35169,7 +35163,7 @@ void P_StartButton(line_t* line, bwhere_e w, int texture, int time)
         }
     }
 
-    I_Error("Error: P_StartButton: no button slots left!");
+    I_Error((char*)"Error: P_StartButton: no button slots left!");
 }
 
 
@@ -35259,7 +35253,7 @@ doom_boolean P_UseSpecialLine(mobj_t* thing, line_t* line, int side)
                 break;
 
             default:
-                return false;
+                return doom_false;
                 break;
         }
     }
@@ -35270,7 +35264,7 @@ doom_boolean P_UseSpecialLine(mobj_t* thing, line_t* line, int side)
     {
         // never open secret doors
         if (line->flags & ML_SECRET)
-            return false;
+            return doom_false;
 
         switch (line->special)
         {
@@ -35281,7 +35275,7 @@ doom_boolean P_UseSpecialLine(mobj_t* thing, line_t* line, int side)
                 break;
 
             default:
-                return false;
+                return doom_false;
                 break;
         }
     }
@@ -35616,7 +35610,7 @@ doom_boolean P_UseSpecialLine(mobj_t* thing, line_t* line, int side)
             break;
     }
 
-    return true;
+    return doom_true;
 }
 int EV_Teleport(line_t* line, int side, mobj_t* thing)
 {
@@ -36043,7 +36037,7 @@ void P_PlayerThink(player_t* player)
         // The actual changing of the weapon is done
         //  when the weapon psprite can do it
         //  (read: not in the middle of an attack).
-        newweapon = (cmd->buttons & BT_WEAPONMASK) >> BT_WEAPONSHIFT;
+        newweapon = (weapontype_t)((cmd->buttons & BT_WEAPONMASK) >> BT_WEAPONSHIFT);
 
         if (newweapon == wp_fist
             && player->weaponowned[wp_chainsaw]
@@ -36082,11 +36076,11 @@ void P_PlayerThink(player_t* player)
         if (!player->usedown)
         {
             P_UseLines(player);
-            player->usedown = true;
+            player->usedown = doom_true;
         }
     }
     else
-        player->usedown = false;
+        player->usedown = doom_false;
 
     // cycle psprites
     P_MovePsprites(player);
@@ -36457,7 +36451,7 @@ clipsolid:
 //
 // R_CheckBBox
 // Checks BSP node/subtree bounding box.
-// Returns true
+// Returns doom_true
 //  if some part of the bbox might be visible.
 //
 doom_boolean R_CheckBBox(fixed_t* bspcoord)
@@ -36499,7 +36493,7 @@ doom_boolean R_CheckBBox(fixed_t* bspcoord)
 
     boxpos = (boxy << 2) + boxx;
     if (boxpos == 5)
-        return true;
+        return doom_true;
 
     x1 = bspcoord[checkcoord[boxpos][0]];
     y1 = bspcoord[checkcoord[boxpos][1]];
@@ -36514,7 +36508,7 @@ doom_boolean R_CheckBBox(fixed_t* bspcoord)
 
     // Sitting on a line?
     if (span >= ANG180)
-        return true;
+        return doom_true;
 
     tspan = angle1 + clipangle;
 
@@ -36524,7 +36518,7 @@ doom_boolean R_CheckBBox(fixed_t* bspcoord)
 
         // Totally off the left edge?
         if (tspan >= span)
-            return false;
+            return doom_false;
 
         angle1 = clipangle;
     }
@@ -36535,7 +36529,7 @@ doom_boolean R_CheckBBox(fixed_t* bspcoord)
 
         // Totally off the left edge?
         if (tspan >= span)
-            return false;
+            return doom_false;
 
 #pragma warning(push)
 #pragma warning(disable : 4146)
@@ -36554,7 +36548,7 @@ doom_boolean R_CheckBBox(fixed_t* bspcoord)
 
     // Does not cross a pixel.
     if (sx1 == sx2)
-        return false;
+        return doom_false;
     sx2--;
 
     start = solidsegs;
@@ -36565,10 +36559,10 @@ doom_boolean R_CheckBBox(fixed_t* bspcoord)
         && sx2 <= start->last)
     {
         // The clippost contains the new span.
-        return false;
+        return doom_false;
     }
 
-    return true;
+    return doom_true;
 }
 
 
@@ -36867,7 +36861,7 @@ void R_GenerateComposite(int texnum)
 
     texture = textures[texnum];
 
-    block = Z_Malloc(texturecompositesize[texnum],
+    block = (byte*)Z_Malloc(texturecompositesize[texnum],
                      PU_STATIC,
                      &texturecomposite[texnum]);
 
@@ -36881,7 +36875,7 @@ void R_GenerateComposite(int texnum)
          i < texture->patchcount;
          i++, patch++)
     {
-        realpatch = W_CacheLumpNum(patch->patch, PU_CACHE);
+        realpatch = (patch_t*)W_CacheLumpNum(patch->patch, PU_CACHE);
         x1 = patch->originx;
         x2 = x1 + SHORT(realpatch->width);
 
@@ -36951,7 +36945,7 @@ void R_GenerateLookup(int texnum)
          i < texture->patchcount;
          i++, patch++)
     {
-        realpatch = W_CacheLumpNum(patch->patch, PU_CACHE);
+        realpatch = (patch_t*)W_CacheLumpNum(patch->patch, PU_CACHE);
         x1 = patch->originx;
         x2 = x1 + SHORT(realpatch->width);
 
@@ -37071,10 +37065,10 @@ void R_InitTextures(void)
 
     // Load the patch names from pnames.lmp.
     name[8] = 0;
-    names = W_CacheLumpName("PNAMES", PU_STATIC);
+    names = (char*)W_CacheLumpName((char*)"PNAMES", PU_STATIC);
     nummappatches = LONG(*((int*)names));
     name_p = names + 4;
-    patchlookup = doom_malloc(nummappatches * sizeof(*patchlookup));
+    patchlookup = (int*)doom_malloc(nummappatches * sizeof(*patchlookup));
 
     for (i = 0; i < nummappatches; i++)
     {
@@ -37086,16 +37080,16 @@ void R_InitTextures(void)
     // Load the map texture definitions from textures.lmp.
     // The data is contained in one or two lumps,
     //  TEXTURE1 for shareware, plus TEXTURE2 for commercial.
-    maptex = maptex1 = W_CacheLumpName("TEXTURE1", PU_STATIC);
+    maptex = maptex1 = (int*)W_CacheLumpName((char*)"TEXTURE1", PU_STATIC);
     numtextures1 = LONG(*maptex);
-    maxoff = W_LumpLength(W_GetNumForName("TEXTURE1"));
+    maxoff = W_LumpLength(W_GetNumForName((char*)"TEXTURE1"));
     directory = maptex + 1;
 
-    if (W_CheckNumForName("TEXTURE2") != -1)
+    if (W_CheckNumForName((char*)"TEXTURE2") != -1)
     {
-        maptex2 = W_CacheLumpName("TEXTURE2", PU_STATIC);
+        maptex2 = (int*)W_CacheLumpName((char*)"TEXTURE2", PU_STATIC);
         numtextures2 = LONG(*maptex2);
-        maxoff2 = W_LumpLength(W_GetNumForName("TEXTURE2"));
+        maxoff2 = W_LumpLength(W_GetNumForName((char*)"TEXTURE2"));
     }
     else
     {
@@ -37105,19 +37099,19 @@ void R_InitTextures(void)
     }
     numtextures = numtextures1 + numtextures2;
 
-    textures = Z_Malloc(numtextures * sizeof(texture_t*), PU_STATIC, 0);
-    texturecolumnlump = Z_Malloc(numtextures * sizeof(short*), PU_STATIC, 0);
-    texturecolumnofs = Z_Malloc(numtextures * sizeof(unsigned short*), PU_STATIC, 0);
-    texturecomposite = Z_Malloc(numtextures * sizeof(byte*), PU_STATIC, 0);
-    texturecompositesize = Z_Malloc(numtextures * sizeof(int), PU_STATIC, 0);
-    texturewidthmask = Z_Malloc(numtextures * sizeof(int), PU_STATIC, 0);
-    textureheight = Z_Malloc(numtextures * sizeof(fixed_t), PU_STATIC, 0);
+    textures = (texture_t**)Z_Malloc(numtextures * sizeof(texture_t*), PU_STATIC, 0);
+    texturecolumnlump =  (short**)Z_Malloc(numtextures * sizeof(short*), PU_STATIC, 0);
+    texturecolumnofs =  (unsigned short**)Z_Malloc(numtextures * sizeof(unsigned short*), PU_STATIC, 0);
+    texturecomposite =  (byte**)Z_Malloc(numtextures * sizeof(byte*), PU_STATIC, 0);
+    texturecompositesize =  (int*)Z_Malloc(numtextures * sizeof(int), PU_STATIC, 0);
+    texturewidthmask =  (int*)Z_Malloc(numtextures * sizeof(int), PU_STATIC, 0);
+    textureheight = (fixed_t*) Z_Malloc(numtextures * sizeof(fixed_t), PU_STATIC, 0);
 
     totalwidth = 0;
 
     // Really complex printing shit...
-    temp1 = W_GetNumForName("S_START");  // P_???????
-    temp2 = W_GetNumForName("S_END") - 1;
+    temp1 = W_GetNumForName((char*)"S_START");  // P_???????
+    temp2 = W_GetNumForName((char*)"S_END") - 1;
     temp3 = ((temp2 - temp1 + 63) / 64) + ((numtextures + 63) / 64);
     doom_print("[");
     for (i = 0; i < temp3; i++)
@@ -37143,12 +37137,12 @@ void R_InitTextures(void)
         offset = LONG(*directory);
 
         if (offset > maxoff)
-            I_Error("Error: R_InitTextures: bad texture directory");
+            I_Error((char*)"Error: R_InitTextures: bad texture directory");
 
         mtexture = (maptexture_t*)((byte*)maptex + offset);
 
         texture = textures[i] =
-            Z_Malloc(sizeof(texture_t)
+            (texture_t*)Z_Malloc(sizeof(texture_t)
                      + sizeof(texpatch_t) * (SHORT(mtexture->patchcount) - 1),
                      PU_STATIC, 0);
 
@@ -37175,8 +37169,8 @@ void R_InitTextures(void)
                 I_Error(error_buf);
             }
         }
-        texturecolumnlump[i] = Z_Malloc(texture->width * sizeof(short), PU_STATIC, 0);
-        texturecolumnofs[i] = Z_Malloc(texture->width * sizeof(unsigned short), PU_STATIC, 0);
+        texturecolumnlump[i] = (short*)Z_Malloc(texture->width * sizeof(short), PU_STATIC, 0);
+        texturecolumnofs[i] = (unsigned short*)Z_Malloc(texture->width * sizeof(unsigned short), PU_STATIC, 0);
 
         j = 1;
         while (j * 2 <= texture->width)
@@ -37197,7 +37191,7 @@ void R_InitTextures(void)
         R_GenerateLookup(i);
 
     // Create translation table for global animation.
-    texturetranslation = Z_Malloc((numtextures + 1) * sizeof(int), PU_STATIC, 0);
+    texturetranslation = (int*)Z_Malloc((numtextures + 1) * sizeof(int), PU_STATIC, 0);
 
     for (i = 0; i < numtextures; i++)
         texturetranslation[i] = i;
@@ -37213,12 +37207,12 @@ void R_InitFlats(void)
 {
     int i;
 
-    firstflat = W_GetNumForName("F_START") + 1;
-    lastflat = W_GetNumForName("F_END") - 1;
+    firstflat = W_GetNumForName((char*)"F_START") + 1;
+    lastflat = W_GetNumForName((char*)"F_END") - 1;
     numflats = lastflat - firstflat + 1;
 
     // Create translation table for global animation.
-    flattranslation = Z_Malloc((numflats + 1) * sizeof(int), PU_STATIC, 0);
+    flattranslation = (int*)Z_Malloc((numflats + 1) * sizeof(int), PU_STATIC, 0);
 
     for (i = 0; i < numflats; i++)
         flattranslation[i] = i;
@@ -37236,20 +37230,20 @@ void R_InitSpriteLumps(void)
     int i;
     patch_t* patch;
 
-    firstspritelump = W_GetNumForName("S_START") + 1;
-    lastspritelump = W_GetNumForName("S_END") - 1;
+    firstspritelump = W_GetNumForName((char*)"S_START") + 1;
+    lastspritelump = W_GetNumForName((char*)"S_END") - 1;
 
     numspritelumps = lastspritelump - firstspritelump + 1;
-    spritewidth = Z_Malloc(numspritelumps * sizeof(fixed_t), PU_STATIC, 0);
-    spriteoffset = Z_Malloc(numspritelumps * sizeof(fixed_t), PU_STATIC, 0);
-    spritetopoffset = Z_Malloc(numspritelumps * sizeof(fixed_t), PU_STATIC, 0);
+    spritewidth = (fixed_t*)Z_Malloc(numspritelumps * sizeof(fixed_t), PU_STATIC, 0);
+    spriteoffset = (fixed_t*)Z_Malloc(numspritelumps * sizeof(fixed_t), PU_STATIC, 0);
+    spritetopoffset = (fixed_t*)Z_Malloc(numspritelumps * sizeof(fixed_t), PU_STATIC, 0);
 
     for (i = 0; i < numspritelumps; i++)
     {
         if (!(i & 63))
             doom_print(".");
 
-        patch = W_CacheLumpNum(firstspritelump + i, PU_CACHE);
+        patch = (patch_t*)W_CacheLumpNum(firstspritelump + i, PU_CACHE);
         spritewidth[i] = SHORT(patch->width) << FRACBITS;
         spriteoffset[i] = SHORT(patch->leftoffset) << FRACBITS;
         spritetopoffset[i] = SHORT(patch->topoffset) << FRACBITS;
@@ -37266,9 +37260,9 @@ void R_InitColormaps(void)
 
     // Load in the light tables, 
     //  256 byte align tables.
-    lump = W_GetNumForName("COLORMAP");
+    lump = W_GetNumForName((char*)"COLORMAP");
     length = W_LumpLength(lump) + 255;
-    colormaps = Z_Malloc(length, PU_STATIC, 0);
+    colormaps = (lighttable_t*)Z_Malloc(length, PU_STATIC, 0);
     colormaps = (byte*)(((unsigned long long)colormaps + 255) & ~0xff);
     W_ReadLump(lump, colormaps);
 }
@@ -37388,7 +37382,7 @@ void R_PrecacheLevel(void)
         return;
 
     // Precache flats.
-    flatpresent = doom_malloc(numflats);
+    flatpresent = (char*)doom_malloc(numflats);
     doom_memset(flatpresent, 0, numflats);
 
     for (i = 0; i < numsectors; i++)
@@ -37410,7 +37404,7 @@ void R_PrecacheLevel(void)
     }
 
     // Precache textures.
-    texturepresent = doom_malloc(numtextures);
+    texturepresent = (char*)doom_malloc(numtextures);
     doom_memset(texturepresent, 0, numtextures);
 
     for (i = 0; i < numsides; i++)
@@ -37445,7 +37439,7 @@ void R_PrecacheLevel(void)
     }
 
     // Precache sprites.
-    spritepresent = doom_malloc(numsprites);
+    spritepresent = (char*)doom_malloc(numsprites);
     doom_memset(spritepresent, 0, numsprites);
 
     for (th = thinkercap.next; th != &thinkercap; th = th->next)
@@ -37810,7 +37804,7 @@ void R_InitTranslationTables(void)
 {
     int i;
 
-    translationtables = Z_Malloc(256 * 3 + 255, PU_STATIC, 0);
+    translationtables = (byte*)Z_Malloc(256 * 3 + 255, PU_STATIC, 0);
     translationtables = (byte*)(((unsigned long long)translationtables + 255) & ~255);
 
     // translate just the 16 green colors
@@ -38035,7 +38029,7 @@ void R_FillBackScreen(void)
     else
         name = name1;
 
-    src = W_CacheLumpName(name, PU_CACHE);
+    src = (byte*)W_CacheLumpName(name, PU_CACHE);
     dest = screens[1];
 
     for (y = 0; y < SCREENHEIGHT - SBARHEIGHT; y++)
@@ -38053,19 +38047,19 @@ void R_FillBackScreen(void)
         }
     }
 
-    patch = W_CacheLumpName("brdr_t", PU_CACHE);
+    patch = (patch_t*)W_CacheLumpName((char*)"brdr_t", PU_CACHE);
 
     for (x = 0; x < scaledviewwidth; x += 8)
         V_DrawPatch(viewwindowx + x, viewwindowy - 8, 1, patch);
-    patch = W_CacheLumpName("brdr_b", PU_CACHE);
+    patch = (patch_t*)W_CacheLumpName((char*)"brdr_b", PU_CACHE);
 
     for (x = 0; x < scaledviewwidth; x += 8)
         V_DrawPatch(viewwindowx + x, viewwindowy + viewheight, 1, patch);
-    patch = W_CacheLumpName("brdr_l", PU_CACHE);
+    patch = (patch_t*)W_CacheLumpName((char*)"brdr_l", PU_CACHE);
 
     for (y = 0; y < viewheight; y += 8)
         V_DrawPatch(viewwindowx - 8, viewwindowy + y, 1, patch);
-    patch = W_CacheLumpName("brdr_r", PU_CACHE);
+    patch = (patch_t*)W_CacheLumpName((char*)"brdr_r", PU_CACHE);
 
     for (y = 0; y < viewheight; y += 8)
         V_DrawPatch(viewwindowx + scaledviewwidth, viewwindowy + y, 1, patch);
@@ -38075,22 +38069,22 @@ void R_FillBackScreen(void)
     V_DrawPatch(viewwindowx - 8,
                 viewwindowy - 8,
                 1,
-                W_CacheLumpName("brdr_tl", PU_CACHE));
+                (patch_t*)W_CacheLumpName((char*)"brdr_tl", PU_CACHE));
 
     V_DrawPatch(viewwindowx + scaledviewwidth,
                 viewwindowy - 8,
                 1,
-                W_CacheLumpName("brdr_tr", PU_CACHE));
+                (patch_t*)W_CacheLumpName((char*)"brdr_tr", PU_CACHE));
 
     V_DrawPatch(viewwindowx - 8,
                 viewwindowy + viewheight,
                 1,
-                W_CacheLumpName("brdr_bl", PU_CACHE));
+                (patch_t*)W_CacheLumpName((char*)"brdr_bl", PU_CACHE));
 
     V_DrawPatch(viewwindowx + scaledviewwidth,
                 viewwindowy + viewheight,
                 1,
-                W_CacheLumpName("brdr_br", PU_CACHE));
+                (patch_t*)W_CacheLumpName((char*)"brdr_br", PU_CACHE));
 }
 
 
@@ -38661,7 +38655,7 @@ void R_InitLightTables(void)
 
 void R_SetViewSize(int blocks, int detail)
 {
-    setsizeneeded = true;
+    setsizeneeded = doom_true;
     setblocks = blocks;
     setdetail = detail;
 }
@@ -38679,7 +38673,7 @@ void R_ExecuteSetViewSize(void)
     int     level;
     int     startmap;
 
-    setsizeneeded = false;
+    setsizeneeded = doom_false;
 
     if (setblocks == 11)
     {
@@ -39086,7 +39080,7 @@ visplane_t* R_FindPlane(fixed_t height, int picnum, int lightlevel)
         return check;
 
     if (lastvisplane - visplanes == MAXVISPLANES)
-        I_Error("Error: R_FindPlane: no more visplanes");
+        I_Error((char*)"Error: R_FindPlane: no more visplanes");
 
     lastvisplane++;
 
@@ -39273,7 +39267,7 @@ void R_DrawPlanes(void)
         }
 
         // regular flat
-        ds_source = W_CacheLumpNum(firstflat +
+        ds_source = (byte*)W_CacheLumpNum(firstflat +
                                    flattranslation[pl->picnum],
                                    PU_STATIC);
 
@@ -39310,10 +39304,10 @@ void R_DrawPlanes(void)
 
 // OPTIMIZE: closed two sided lines as single sided
 
-// True if any of the segs textures might be visible.
+// doom_true if any of the segs textures might be visible.
 doom_boolean segtextured;
 
-// False if the back side is the same plane.
+// doom_false if the back side is the same plane.
 doom_boolean markfloor;
 doom_boolean markceiling;
 
@@ -39714,7 +39708,7 @@ void R_StoreWallRange(int start, int stop)
         // single sided line
         midtexture = texturetranslation[sidedef->midtexture];
         // a single sided line is terminal, so it must mark ends
-        markfloor = markceiling = true;
+        markfloor = markceiling = doom_true;
         if (linedef->flags & ML_DONTPEGBOTTOM)
         {
             vtop = frontsector->floorheight +
@@ -39793,31 +39787,31 @@ void R_StoreWallRange(int start, int stop)
             || backsector->floorpic != frontsector->floorpic
             || backsector->lightlevel != frontsector->lightlevel)
         {
-            markfloor = true;
+            markfloor = doom_true;
         }
         else
         {
             // same plane on both sides
-            markfloor = false;
+            markfloor = doom_false;
         }
 
         if (worldhigh != worldtop
             || backsector->ceilingpic != frontsector->ceilingpic
             || backsector->lightlevel != frontsector->lightlevel)
         {
-            markceiling = true;
+            markceiling = doom_true;
         }
         else
         {
             // same plane on both sides
-            markceiling = false;
+            markceiling = doom_false;
         }
 
         if (backsector->ceilingheight <= frontsector->floorheight
             || backsector->floorheight >= frontsector->ceilingheight)
         {
             // closed door
-            markceiling = markfloor = true;
+            markceiling = markfloor = doom_true;
         }
 
         if (worldhigh < worldtop)
@@ -39860,14 +39854,14 @@ void R_StoreWallRange(int start, int stop)
         if (sidedef->midtexture)
         {
             // masked midtexture
-            maskedtexture = true;
+            maskedtexture = doom_true;
             ds_p->maskedtexturecol = maskedtexturecol = lastopening - rw_x;
             lastopening += rw_stopx - rw_x;
         }
     }
 
     // calculate rw_offset (only needed for textured lines)
-    segtextured = midtexture | toptexture | bottomtexture | maskedtexture;
+    segtextured = midtexture | toptexture | bottomtexture | (int)maskedtexture;
 
     if (segtextured)
     {
@@ -39920,14 +39914,14 @@ void R_StoreWallRange(int start, int stop)
     if (frontsector->floorheight >= viewz)
     {
         // above view plane
-        markfloor = false;
+        markfloor = doom_false;
     }
 
     if (frontsector->ceilingheight <= viewz
         && frontsector->ceilingpic != skyflatnum)
     {
         // below view plane
-        markceiling = false;
+        markceiling = doom_false;
     }
 
 
@@ -40083,7 +40077,7 @@ void R_InstallSpriteLump(int lump, unsigned frame, unsigned rotation, doom_boole
     if (rotation == 0)
     {
         // the lump should be used for all rotations
-        if (sprtemp[frame].rotate == false)
+        if (sprtemp[frame].rotate == doom_false)
         {
             //I_Error("Error: R_InitSprites: Sprite %s frame %c has "
             //        "multip rot=0 lump", spritename, 'A' + frame);
@@ -40095,7 +40089,7 @@ void R_InstallSpriteLump(int lump, unsigned frame, unsigned rotation, doom_boole
             I_Error(error_buf);
         }
 
-        if (sprtemp[frame].rotate == true)
+        if (sprtemp[frame].rotate == doom_true)
         {
             //I_Error("Error: R_InitSprites: Sprite %s frame %c has rotations "
             //        "and a rot=0 lump", spritename, 'A' + frame);
@@ -40107,7 +40101,7 @@ void R_InstallSpriteLump(int lump, unsigned frame, unsigned rotation, doom_boole
             I_Error(error_buf);
         }
 
-        sprtemp[frame].rotate = false;
+        sprtemp[frame].rotate = doom_false;
         for (r = 0; r < 8; r++)
         {
             sprtemp[frame].lump[r] = lump - firstspritelump;
@@ -40117,7 +40111,7 @@ void R_InstallSpriteLump(int lump, unsigned frame, unsigned rotation, doom_boole
     }
 
     // the lump is only used for one rotation
-    if (sprtemp[frame].rotate == false)
+    if (sprtemp[frame].rotate == doom_false)
     {
         //I_Error("Error: R_InitSprites: Sprite %s frame %c has rotations "
         //        "and a rot=0 lump", spritename, 'A' + frame);
@@ -40129,7 +40123,7 @@ void R_InstallSpriteLump(int lump, unsigned frame, unsigned rotation, doom_boole
         I_Error(error_buf);
     }
 
-    sprtemp[frame].rotate = true;
+    sprtemp[frame].rotate = doom_true;
 
     // make 0 based
     rotation--;
@@ -40190,7 +40184,7 @@ void R_InitSpriteDefs(char** namelist)
     if (!numsprites)
         return;
 
-    sprites = Z_Malloc(numsprites * sizeof(*sprites), PU_STATIC, 0);
+    sprites = (spritedef_t*)Z_Malloc(numsprites * sizeof(*sprites), PU_STATIC, 0);
 
     start = firstspritelump - 1;
     end = lastspritelump + 1;
@@ -40220,13 +40214,13 @@ void R_InitSpriteDefs(char** namelist)
                 else
                     patched = l;
 
-                R_InstallSpriteLump(patched, frame, rotation, false);
+                R_InstallSpriteLump(patched, frame, rotation, doom_false);
 
                 if (lumpinfo[l].name[6])
                 {
                     frame = lumpinfo[l].name[6] - 'A';
                     rotation = lumpinfo[l].name[7] - '0';
-                    R_InstallSpriteLump(l, frame, rotation, true);
+                    R_InstallSpriteLump(l, frame, rotation, doom_true);
                 }
             }
         }
@@ -40283,7 +40277,7 @@ void R_InitSpriteDefs(char** namelist)
         // allocate space for the frames present and copy sprtemp to it
         sprites[i].numframes = maxframe;
         sprites[i].spriteframes =
-            Z_Malloc(maxframe * sizeof(spriteframe_t), PU_STATIC, 0);
+            (spriteframe_t*)Z_Malloc(maxframe * sizeof(spriteframe_t), PU_STATIC, 0);
         doom_memcpy(sprites[i].spriteframes, sprtemp, maxframe * sizeof(spriteframe_t));
     }
 }
@@ -40398,7 +40392,7 @@ void R_DrawVisSprite(vissprite_t* vis, int x1, int x2)
     fixed_t frac;
     patch_t* patch;
 
-    patch = W_CacheLumpNum(vis->patch + firstspritelump, PU_CACHE);
+    patch = (patch_t*)W_CacheLumpNum(vis->patch + firstspritelump, PU_CACHE);
 
     dc_colormap = vis->colormap;
 
@@ -40425,7 +40419,7 @@ void R_DrawVisSprite(vissprite_t* vis, int x1, int x2)
         texturecolumn = frac >> FRACBITS;
 #ifdef RANGECHECK
         if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
-            I_Error("Error: R_DrawSpriteRange: bad texturecolumn");
+            I_Error((char*)"Error: R_DrawSpriteRange: bad texturecolumn");
 #endif
         column = (column_t*)((byte*)patch +
                              LONG(patch->columnofs[texturecolumn]));
@@ -41169,7 +41163,7 @@ void S_Start(void)
     //  if (commercial && mnum > mus_e3m9)        
     //      mnum -= mus_e3m9;
 
-    S_ChangeMusic(mnum, true);
+    S_ChangeMusic(mnum, doom_true);
 
     nextcleanup = 15;
 }
@@ -41341,7 +41335,7 @@ void S_PauseSound(void)
     if (mus_playing_s_sound && !mus_paused)
     {
         I_PauseSong(mus_playing_s_sound->handle);
-        mus_paused = true;
+        mus_paused = doom_true;
     }
 }
 
@@ -41351,7 +41345,7 @@ void S_ResumeSound(void)
     if (mus_playing_s_sound && mus_paused)
     {
         I_ResumeSong(mus_playing_s_sound->handle);
-        mus_paused = false;
+        mus_paused = doom_false;
     }
 }
 
@@ -41405,7 +41399,7 @@ void S_UpdateSounds(void* listener_p)
                 if (c->origin && listener_p != c->origin)
                 {
                     audible = S_AdjustSoundParams(listener,
-                                                  c->origin,
+                                                  (mobj_s*)c->origin,
                                                   &volume,
                                                   &sep,
                                                   &pitch);
@@ -41465,7 +41459,7 @@ void S_SetSfxVolume(int volume)
 //
 void S_StartMusic(int m_id)
 {
-    S_ChangeMusic(m_id, false);
+    S_ChangeMusic(m_id, doom_false);
 }
 
 
@@ -41686,73 +41680,73 @@ int S_getChannel(void* origin, sfxinfo_t* sfxinfo)
 musicinfo_t S_music[] =
 {
     { 0 },
-    { "e1m1", 0 },
-    { "e1m2", 0 },
-    { "e1m3", 0 },
-    { "e1m4", 0 },
-    { "e1m5", 0 },
-    { "e1m6", 0 },
-    { "e1m7", 0 },
-    { "e1m8", 0 },
-    { "e1m9", 0 },
-    { "e2m1", 0 },
-    { "e2m2", 0 },
-    { "e2m3", 0 },
-    { "e2m4", 0 },
-    { "e2m5", 0 },
-    { "e2m6", 0 },
-    { "e2m7", 0 },
-    { "e2m8", 0 },
-    { "e2m9", 0 },
-    { "e3m1", 0 },
-    { "e3m2", 0 },
-    { "e3m3", 0 },
-    { "e3m4", 0 },
-    { "e3m5", 0 },
-    { "e3m6", 0 },
-    { "e3m7", 0 },
-    { "e3m8", 0 },
-    { "e3m9", 0 },
-    { "inter", 0 },
-    { "intro", 0 },
-    { "bunny", 0 },
-    { "victor", 0 },
-    { "introa", 0 },
-    { "runnin", 0 },
-    { "stalks", 0 },
-    { "countd", 0 },
-    { "betwee", 0 },
-    { "doom", 0 },
-    { "the_da", 0 },
-    { "shawn", 0 },
-    { "ddtblu", 0 },
-    { "in_cit", 0 },
-    { "dead", 0 },
-    { "stlks2", 0 },
-    { "theda2", 0 },
-    { "doom2", 0 },
-    { "ddtbl2", 0 },
-    { "runni2", 0 },
-    { "dead2", 0 },
-    { "stlks3", 0 },
-    { "romero", 0 },
-    { "shawn2", 0 },
-    { "messag", 0 },
-    { "count2", 0 },
-    { "ddtbl3", 0 },
-    { "ampie", 0 },
-    { "theda3", 0 },
-    { "adrian", 0 },
-    { "messg2", 0 },
-    { "romer2", 0 },
-    { "tense", 0 },
-    { "shawn3", 0 },
-    { "openin", 0 },
-    { "evil", 0 },
-    { "ultima", 0 },
-    { "read_m", 0 },
-    { "dm2ttl", 0 },
-    { "dm2int", 0 }
+    { (char*)"e1m1", 0 },
+    { (char*)"e1m2", 0 },
+    { (char*)"e1m3", 0 },
+    { (char*)"e1m4", 0 },
+    { (char*)"e1m5", 0 },
+    { (char*)"e1m6", 0 },
+    { (char*)"e1m7", 0 },
+    { (char*)"e1m8", 0 },
+    { (char*)"e1m9", 0 },
+    { (char*)"e2m1", 0 },
+    { (char*)"e2m2", 0 },
+    { (char*)"e2m3", 0 },
+    { (char*)"e2m4", 0 },
+    { (char*)"e2m5", 0 },
+    { (char*)"e2m6", 0 },
+    { (char*)"e2m7", 0 },
+    { (char*)"e2m8", 0 },
+    { (char*)"e2m9", 0 },
+    { (char*)"e3m1", 0 },
+    { (char*)"e3m2", 0 },
+    { (char*)"e3m3", 0 },
+    { (char*)"e3m4", 0 },
+    { (char*)"e3m5", 0 },
+    { (char*)"e3m6", 0 },
+    { (char*)"e3m7", 0 },
+    { (char*)"e3m8", 0 },
+    { (char*)"e3m9", 0 },
+    { (char*)"inter", 0 },
+    { (char*)"intro", 0 },
+    { (char*)"bunny", 0 },
+    { (char*)"victor", 0 },
+    { (char*)"introa", 0 },
+    { (char*)"runnin", 0 },
+    { (char*)"stalks", 0 },
+    { (char*)"countd", 0 },
+    { (char*)"betwee", 0 },
+    { (char*)"doom", 0 },
+    { (char*)"the_da", 0 },
+    { (char*)"shawn", 0 },
+    { (char*)"ddtblu", 0 },
+    { (char*)"in_cit", 0 },
+    { (char*)"dead", 0 },
+    { (char*)"stlks2", 0 },
+    { (char*)"theda2", 0 },
+    { (char*)"doom2", 0 },
+    { (char*)"ddtbl2", 0 },
+    { (char*)"runni2", 0 },
+    { (char*)"dead2", 0 },
+    { (char*)"stlks3", 0 },
+    { (char*)"romero", 0 },
+    { (char*)"shawn2", 0 },
+    { (char*)"messag", 0 },
+    { (char*)"count2", 0 },
+    { (char*)"ddtbl3", 0 },
+    { (char*)"ampie", 0 },
+    { (char*)"theda3", 0 },
+    { (char*)"adrian", 0 },
+    { (char*)"messg2", 0 },
+    { (char*)"romer2", 0 },
+    { (char*)"tense", 0 },
+    { (char*)"shawn3", 0 },
+    { (char*)"openin", 0 },
+    { (char*)"evil", 0 },
+    { (char*)"ultima", 0 },
+    { (char*)"read_m", 0 },
+    { (char*)"dm2ttl", 0 },
+    { (char*)"dm2int", 0 }
 };
 
 
@@ -41762,115 +41756,115 @@ musicinfo_t S_music[] =
 sfxinfo_t S_sfx[] =
 {
     // S_sfx[0] needs to be a dummy for odd reasons.
-    { "none", false,  0, 0, -1, -1, 0 },
-    { "pistol", false, 64, 0, -1, -1, 0 },
-    { "shotgn", false, 64, 0, -1, -1, 0 },
-    { "sgcock", false, 64, 0, -1, -1, 0 },
-    { "dshtgn", false, 64, 0, -1, -1, 0 },
-    { "dbopn", false, 64, 0, -1, -1, 0 },
-    { "dbcls", false, 64, 0, -1, -1, 0 },
-    { "dbload", false, 64, 0, -1, -1, 0 },
-    { "plasma", false, 64, 0, -1, -1, 0 },
-    { "bfg", false, 64, 0, -1, -1, 0 },
-    { "sawup", false, 64, 0, -1, -1, 0 },
-    { "sawidl", false, 118, 0, -1, -1, 0 },
-    { "sawful", false, 64, 0, -1, -1, 0 },
-    { "sawhit", false, 64, 0, -1, -1, 0 },
-    { "rlaunc", false, 64, 0, -1, -1, 0 },
-    { "rxplod", false, 70, 0, -1, -1, 0 },
-    { "firsht", false, 70, 0, -1, -1, 0 },
-    { "firxpl", false, 70, 0, -1, -1, 0 },
-    { "pstart", false, 100, 0, -1, -1, 0 },
-    { "pstop", false, 100, 0, -1, -1, 0 },
-    { "doropn", false, 100, 0, -1, -1, 0 },
-    { "dorcls", false, 100, 0, -1, -1, 0 },
-    { "stnmov", false, 119, 0, -1, -1, 0 },
-    { "swtchn", false, 78, 0, -1, -1, 0 },
-    { "swtchx", false, 78, 0, -1, -1, 0 },
-    { "plpain", false, 96, 0, -1, -1, 0 },
-    { "dmpain", false, 96, 0, -1, -1, 0 },
-    { "popain", false, 96, 0, -1, -1, 0 },
-    { "vipain", false, 96, 0, -1, -1, 0 },
-    { "mnpain", false, 96, 0, -1, -1, 0 },
-    { "pepain", false, 96, 0, -1, -1, 0 },
-    { "slop", false, 78, 0, -1, -1, 0 },
-    { "itemup", true, 78, 0, -1, -1, 0 },
-    { "wpnup", true, 78, 0, -1, -1, 0 },
-    { "oof", false, 96, 0, -1, -1, 0 },
-    { "telept", false, 32, 0, -1, -1, 0 },
-    { "posit1", true, 98, 0, -1, -1, 0 },
-    { "posit2", true, 98, 0, -1, -1, 0 },
-    { "posit3", true, 98, 0, -1, -1, 0 },
-    { "bgsit1", true, 98, 0, -1, -1, 0 },
-    { "bgsit2", true, 98, 0, -1, -1, 0 },
-    { "sgtsit", true, 98, 0, -1, -1, 0 },
-    { "cacsit", true, 98, 0, -1, -1, 0 },
-    { "brssit", true, 94, 0, -1, -1, 0 },
-    { "cybsit", true, 92, 0, -1, -1, 0 },
-    { "spisit", true, 90, 0, -1, -1, 0 },
-    { "bspsit", true, 90, 0, -1, -1, 0 },
-    { "kntsit", true, 90, 0, -1, -1, 0 },
-    { "vilsit", true, 90, 0, -1, -1, 0 },
-    { "mansit", true, 90, 0, -1, -1, 0 },
-    { "pesit", true, 90, 0, -1, -1, 0 },
-    { "sklatk", false, 70, 0, -1, -1, 0 },
-    { "sgtatk", false, 70, 0, -1, -1, 0 },
-    { "skepch", false, 70, 0, -1, -1, 0 },
-    { "vilatk", false, 70, 0, -1, -1, 0 },
-    { "claw", false, 70, 0, -1, -1, 0 },
-    { "skeswg", false, 70, 0, -1, -1, 0 },
-    { "pldeth", false, 32, 0, -1, -1, 0 },
-    { "pdiehi", false, 32, 0, -1, -1, 0 },
-    { "podth1", false, 70, 0, -1, -1, 0 },
-    { "podth2", false, 70, 0, -1, -1, 0 },
-    { "podth3", false, 70, 0, -1, -1, 0 },
-    { "bgdth1", false, 70, 0, -1, -1, 0 },
-    { "bgdth2", false, 70, 0, -1, -1, 0 },
-    { "sgtdth", false, 70, 0, -1, -1, 0 },
-    { "cacdth", false, 70, 0, -1, -1, 0 },
-    { "skldth", false, 70, 0, -1, -1, 0 },
-    { "brsdth", false, 32, 0, -1, -1, 0 },
-    { "cybdth", false, 32, 0, -1, -1, 0 },
-    { "spidth", false, 32, 0, -1, -1, 0 },
-    { "bspdth", false, 32, 0, -1, -1, 0 },
-    { "vildth", false, 32, 0, -1, -1, 0 },
-    { "kntdth", false, 32, 0, -1, -1, 0 },
-    { "pedth", false, 32, 0, -1, -1, 0 },
-    { "skedth", false, 32, 0, -1, -1, 0 },
-    { "posact", true, 120, 0, -1, -1, 0 },
-    { "bgact", true, 120, 0, -1, -1, 0 },
-    { "dmact", true, 120, 0, -1, -1, 0 },
-    { "bspact", true, 100, 0, -1, -1, 0 },
-    { "bspwlk", true, 100, 0, -1, -1, 0 },
-    { "vilact", true, 100, 0, -1, -1, 0 },
-    { "noway", false, 78, 0, -1, -1, 0 },
-    { "barexp", false, 60, 0, -1, -1, 0 },
-    { "punch", false, 64, 0, -1, -1, 0 },
-    { "hoof", false, 70, 0, -1, -1, 0 },
-    { "metal", false, 70, 0, -1, -1, 0 },
-    { "chgun", false, 64, &S_sfx[sfx_pistol], 150, 0, 0 },
-    { "tink", false, 60, 0, -1, -1, 0 },
-    { "bdopn", false, 100, 0, -1, -1, 0 },
-    { "bdcls", false, 100, 0, -1, -1, 0 },
-    { "itmbk", false, 100, 0, -1, -1, 0 },
-    { "flame", false, 32, 0, -1, -1, 0 },
-    { "flamst", false, 32, 0, -1, -1, 0 },
-    { "getpow", false, 60, 0, -1, -1, 0 },
-    { "bospit", false, 70, 0, -1, -1, 0 },
-    { "boscub", false, 70, 0, -1, -1, 0 },
-    { "bossit", false, 70, 0, -1, -1, 0 },
-    { "bospn", false, 70, 0, -1, -1, 0 },
-    { "bosdth", false, 70, 0, -1, -1, 0 },
-    { "manatk", false, 70, 0, -1, -1, 0 },
-    { "mandth", false, 70, 0, -1, -1, 0 },
-    { "sssit", false, 70, 0, -1, -1, 0 },
-    { "ssdth", false, 70, 0, -1, -1, 0 },
-    { "keenpn", false, 70, 0, -1, -1, 0 },
-    { "keendt", false, 70, 0, -1, -1, 0 },
-    { "skeact", false, 70, 0, -1, -1, 0 },
-    { "skesit", false, 70, 0, -1, -1, 0 },
-    { "skeatk", false, 70, 0, -1, -1, 0 },
-    { "radio", false, 60, 0, -1, -1, 0 }
+    { (char*)"none", doom_false,  0, 0, -1, -1, 0 },
+    { (char*)"pistol", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"shotgn", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"sgcock", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"dshtgn", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"dbopn", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"dbcls", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"dbload", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"plasma", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"bfg", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"sawup", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"sawidl", doom_false, 118, 0, -1, -1, 0 },
+    { (char*)"sawful", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"sawhit", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"rlaunc", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"rxplod", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"firsht", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"firxpl", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"pstart", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"pstop", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"doropn", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"dorcls", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"stnmov", doom_false, 119, 0, -1, -1, 0 },
+    { (char*)"swtchn", doom_false, 78, 0, -1, -1, 0 },
+    { (char*)"swtchx", doom_false, 78, 0, -1, -1, 0 },
+    { (char*)"plpain", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"dmpain", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"popain", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"vipain", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"mnpain", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"pepain", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"slop", doom_false, 78, 0, -1, -1, 0 },
+    { (char*)"itemup", doom_true, 78, 0, -1, -1, 0 },
+    { (char*)"wpnup", doom_true, 78, 0, -1, -1, 0 },
+    { (char*)"oof", doom_false, 96, 0, -1, -1, 0 },
+    { (char*)"telept", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"posit1", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"posit2", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"posit3", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"bgsit1", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"bgsit2", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"sgtsit", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"cacsit", doom_true, 98, 0, -1, -1, 0 },
+    { (char*)"brssit", doom_true, 94, 0, -1, -1, 0 },
+    { (char*)"cybsit", doom_true, 92, 0, -1, -1, 0 },
+    { (char*)"spisit", doom_true, 90, 0, -1, -1, 0 },
+    { (char*)"bspsit", doom_true, 90, 0, -1, -1, 0 },
+    { (char*)"kntsit", doom_true, 90, 0, -1, -1, 0 },
+    { (char*)"vilsit", doom_true, 90, 0, -1, -1, 0 },
+    { (char*)"mansit", doom_true, 90, 0, -1, -1, 0 },
+    { (char*)"pesit", doom_true, 90, 0, -1, -1, 0 },
+    { (char*)"sklatk", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"sgtatk", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"skepch", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"vilatk", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"claw", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"skeswg", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"pldeth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"pdiehi", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"podth1", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"podth2", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"podth3", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"bgdth1", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"bgdth2", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"sgtdth", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"cacdth", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"skldth", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"brsdth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"cybdth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"spidth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"bspdth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"vildth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"kntdth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"pedth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"skedth", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"posact", doom_true, 120, 0, -1, -1, 0 },
+    { (char*)"bgact", doom_true, 120, 0, -1, -1, 0 },
+    { (char*)"dmact", doom_true, 120, 0, -1, -1, 0 },
+    { (char*)"bspact", doom_true, 100, 0, -1, -1, 0 },
+    { (char*)"bspwlk", doom_true, 100, 0, -1, -1, 0 },
+    { (char*)"vilact", doom_true, 100, 0, -1, -1, 0 },
+    { (char*)"noway", doom_false, 78, 0, -1, -1, 0 },
+    { (char*)"barexp", doom_false, 60, 0, -1, -1, 0 },
+    { (char*)"punch", doom_false, 64, 0, -1, -1, 0 },
+    { (char*)"hoof", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"metal", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"chgun", doom_false, 64, &S_sfx[sfx_pistol], 150, 0, 0 },
+    { (char*)"tink", doom_false, 60, 0, -1, -1, 0 },
+    { (char*)"bdopn", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"bdcls", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"itmbk", doom_false, 100, 0, -1, -1, 0 },
+    { (char*)"flame", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"flamst", doom_false, 32, 0, -1, -1, 0 },
+    { (char*)"getpow", doom_false, 60, 0, -1, -1, 0 },
+    { (char*)"bospit", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"boscub", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"bossit", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"bospn", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"bosdth", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"manatk", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"mandth", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"sssit", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"ssdth", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"keenpn", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"keendt", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"skeact", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"skesit", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"skeatk", doom_false, 70, 0, -1, -1, 0 },
+    { (char*)"radio", doom_false, 60, 0, -1, -1, 0 }
 };
 extern doom_boolean                automapactive;
 
@@ -41884,7 +41878,7 @@ patch_t* sttminus;
 
 void STlib_init(void)
 {
-    sttminus = (patch_t*)W_CacheLumpName("STTMINUS", PU_STATIC);
+    sttminus = (patch_t*)W_CacheLumpName((char*)"STTMINUS", PU_STATIC);
 }
 
 // ?
@@ -41933,7 +41927,7 @@ void STlib_drawNum(st_number_t* n, doom_boolean refresh)
     x = n->x - numdigits * w;
 
     if (n->y - ST_Y < 0)
-        I_Error("Error: drawNum: n->y - ST_Y < 0");
+        I_Error((char*)"Error: drawNum: n->y - ST_Y < 0");
 
     V_CopyRect(x, n->y - ST_Y, STLIB_BG, w * numdigits, h, x, n->y, STLIB_FG);
 
@@ -42010,7 +42004,7 @@ void STlib_updateMultIcon(st_multicon_t* mi, doom_boolean refresh)
             h = SHORT(mi->p[mi->oldinum]->height);
 
             if (y - ST_Y < 0)
-                I_Error("Error: updateMultIcon: y - ST_Y < 0");
+                I_Error((char*)"Error: updateMultIcon: y - ST_Y < 0");
 
             V_CopyRect(x, y - ST_Y, STLIB_BG, w, h, x, y, STLIB_FG);
         }
@@ -42036,7 +42030,7 @@ void STlib_updateBinIcon(st_binicon_t* bi, doom_boolean refresh)
     int w;
     int h;
 
-    if (*bi->on && (bi->oldval != *bi->val || refresh))
+    if (*bi->on && ((doom_boolean)bi->oldval != *bi->val || refresh))
     {
         x = bi->x - SHORT(bi->p->leftoffset);
         y = bi->y - SHORT(bi->p->topoffset);
@@ -42044,7 +42038,7 @@ void STlib_updateBinIcon(st_binicon_t* bi, doom_boolean refresh)
         h = SHORT(bi->p->height);
 
         if (y - ST_Y < 0)
-            I_Error("Error: updateBinIcon: y - ST_Y < 0");
+            I_Error((char*)"Error: updateBinIcon: y - ST_Y < 0");
 
         if (*bi->val)
             V_DrawPatch(bi->x, bi->y, STLIB_FG, bi->p);
@@ -42286,7 +42280,7 @@ static int st_faceindex = 0; // current face index, used by w_faces
 static int keyboxes[3]; // holds key-type for each key box on bar
 static int st_randomnumber; // a random number per tick
 static int st_palette = 0;
-static doom_boolean st_stopped = true;
+static doom_boolean st_stopped = doom_true;
 
 
 // Massive bunches of cheat shit
@@ -42415,7 +42409,7 @@ doom_boolean ST_Responder(event_t* ev)
         {
             case AM_MSGENTERED:
                 st_gamestate = AutomapState;
-                st_firsttime = true;
+                st_firsttime = doom_true;
                 break;
 
             case AM_MSGEXITED:
@@ -42443,10 +42437,10 @@ doom_boolean ST_Responder(event_t* ev)
                         plyr->mo->health = 100;
 
                     plyr->health = 100;
-                    plyr->message = STSTR_DQDON;
+                    plyr->message = (char*)STSTR_DQDON;
                 }
                 else
-                    plyr->message = STSTR_DQDOFF;
+                    plyr->message = (char*)STSTR_DQDOFF;
             }
             // 'fa' cheat for killer fucking arsenal
             else if (cht_CheckCheat(&cheat_ammonokey, ev->data1))
@@ -42455,12 +42449,12 @@ doom_boolean ST_Responder(event_t* ev)
                 plyr->armortype = 2;
 
                 for (i = 0; i < NUMWEAPONS; i++)
-                    plyr->weaponowned[i] = true;
+                    plyr->weaponowned[i] = doom_true;
 
                 for (i = 0; i < NUMAMMO; i++)
                     plyr->ammo[i] = plyr->maxammo[i];
 
-                plyr->message = STSTR_FAADDED;
+                plyr->message = (char*)STSTR_FAADDED;
             }
             // 'kfa' cheat for key full ammo
             else if (cht_CheckCheat(&cheat_ammo, ev->data1))
@@ -42469,15 +42463,15 @@ doom_boolean ST_Responder(event_t* ev)
                 plyr->armortype = 2;
 
                 for (i = 0; i < NUMWEAPONS; i++)
-                    plyr->weaponowned[i] = true;
+                    plyr->weaponowned[i] = doom_true;
 
                 for (i = 0; i < NUMAMMO; i++)
                     plyr->ammo[i] = plyr->maxammo[i];
 
                 for (i = 0; i < NUMCARDS; i++)
-                    plyr->cards[i] = true;
+                    plyr->cards[i] = doom_true;
 
-                plyr->message = STSTR_KFAADDED;
+                plyr->message = (char*)STSTR_KFAADDED;
             }
             // 'mus' cheat for changing music
             else if (cht_CheckCheat(&cheat_mus, ev->data1))
@@ -42485,7 +42479,7 @@ doom_boolean ST_Responder(event_t* ev)
                 char buf[3];
                 int musnum;
 
-                plyr->message = STSTR_MUS;
+                plyr->message = (char*)STSTR_MUS;
                 cht_GetParam(&cheat_mus, buf);
 
                 if (gamemode == commercial)
@@ -42493,7 +42487,7 @@ doom_boolean ST_Responder(event_t* ev)
                     musnum = mus_runnin + (buf[0] - '0') * 10 + buf[1] - '0' - 1;
 
                     if (((buf[0] - '0') * 10 + buf[1] - '0') > 35)
-                        plyr->message = STSTR_NOMUS;
+                        plyr->message = (char*)STSTR_NOMUS;
                     else
                         S_ChangeMusic(musnum, 1);
                 }
@@ -42502,7 +42496,7 @@ doom_boolean ST_Responder(event_t* ev)
                     musnum = mus_e1m1 + (buf[0] - '1') * 9 + (buf[1] - '1');
 
                     if (((buf[0] - '1') * 9 + buf[1] - '1') > 31)
-                        plyr->message = STSTR_NOMUS;
+                        plyr->message = (char*)STSTR_NOMUS;
                     else
                         S_ChangeMusic(musnum, 1);
                 }
@@ -42515,9 +42509,9 @@ doom_boolean ST_Responder(event_t* ev)
                 plyr->cheats ^= CF_NOCLIP;
 
                 if (plyr->cheats & CF_NOCLIP)
-                    plyr->message = STSTR_NCON;
+                    plyr->message = (char*)STSTR_NCON;
                 else
-                    plyr->message = STSTR_NCOFF;
+                    plyr->message = (char*)STSTR_NCOFF;
             }
             // 'behold?' power-up cheats
             for (i = 0; i < 6; i++)
@@ -42531,21 +42525,21 @@ doom_boolean ST_Responder(event_t* ev)
                     else
                         plyr->powers[i] = 0;
 
-                    plyr->message = STSTR_BEHOLDX;
+                    plyr->message = (char*)STSTR_BEHOLDX;
                 }
             }
 
             // 'behold' power-up menu
             if (cht_CheckCheat(&cheat_powerup[6], ev->data1))
             {
-                plyr->message = STSTR_BEHOLD;
+                plyr->message = (char*)STSTR_BEHOLD;
             }
             // 'choppers' invulnerability & chainsaw
             else if (cht_CheckCheat(&cheat_choppers, ev->data1))
             {
-                plyr->weaponowned[wp_chainsaw] = true;
-                plyr->powers[pw_invulnerability] = true;
-                plyr->message = STSTR_CHOPPERS;
+                plyr->weaponowned[wp_chainsaw] = doom_true;
+                plyr->powers[pw_invulnerability] = doom_true;
+                plyr->message = (char*)STSTR_CHOPPERS;
             }
             // 'mypos' for player position
             else if (cht_CheckCheat(&cheat_mypos, ev->data1))
@@ -42588,34 +42582,34 @@ doom_boolean ST_Responder(event_t* ev)
 
             // Catch invalid maps.
             if (epsd < 1)
-                return false;
+                return doom_false;
 
             if (map < 1)
-                return false;
+                return doom_false;
 
             // Ohmygod - this is not going to work.
             if ((gamemode == retail)
                 && ((epsd > 4) || (map > 9)))
-                return false;
+                return doom_false;
 
             if ((gamemode == registered)
                 && ((epsd > 3) || (map > 9)))
-                return false;
+                return doom_false;
 
             if ((gamemode == shareware)
                 && ((epsd > 1) || (map > 9)))
-                return false;
+                return doom_false;
 
             if ((gamemode == commercial)
                 && ((epsd > 1) || (map > 34)))
-                return false;
+                return doom_false;
 
             // So be it.
-            plyr->message = STSTR_CLEV;
+            plyr->message = (char*)STSTR_CLEV;
             G_DeferedInitNew(gameskill, epsd, map);
         }
     }
-    return false;
+    return doom_false;
 }
 
 
@@ -42667,13 +42661,13 @@ void ST_updateFaceWidget(void)
         if (plyr->bonuscount)
         {
             // picking up bonus
-            doevilgrin = false;
+            doevilgrin = doom_false;
 
             for (i = 0; i < NUMWEAPONS; i++)
             {
                 if (oldweaponsowned[i] != plyr->weaponowned[i])
                 {
-                    doevilgrin = true;
+                    doevilgrin = doom_true;
                     oldweaponsowned[i] = plyr->weaponowned[i];
                 }
             }
@@ -42959,20 +42953,20 @@ void ST_drawWidgets(doom_boolean refresh)
 
 void ST_doRefresh(void)
 {
-    st_firsttime = false;
+    st_firsttime = doom_false;
 
     // draw status bar background to off-screen buff
     ST_refreshBackground();
 
     // and refresh all widgets
-    ST_drawWidgets(true);
+    ST_drawWidgets(doom_true);
 }
 
 
 void ST_diffDraw(void)
 {
     // update all widgets
-    ST_drawWidgets(false);
+    ST_drawWidgets(doom_false);
 }
 
 
@@ -43022,7 +43016,7 @@ void ST_loadGraphics(void)
 
     // Load percent key.
     //Note: why not load STMINUS here, too?
-    tallpercent = (patch_t*)W_CacheLumpName("STTPRCNT", PU_STATIC);
+    tallpercent = (patch_t*)W_CacheLumpName((char*)"STTPRCNT", PU_STATIC);
 
     // key cards
     for (i = 0; i < NUMCARDS; i++)
@@ -43034,7 +43028,7 @@ void ST_loadGraphics(void)
     }
 
     // arms background
-    armsbg = (patch_t*)W_CacheLumpName("STARMS", PU_STATIC);
+    armsbg = (patch_t*)W_CacheLumpName((char*)"STARMS", PU_STATIC);
 
     // arms ownership widgets
     for (i = 0; i < 6; i++)
@@ -43057,7 +43051,7 @@ void ST_loadGraphics(void)
     faceback = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
 
     // status bar background bits
-    sbar = (patch_t*)W_CacheLumpName("STBAR", PU_STATIC);
+    sbar = (patch_t*)W_CacheLumpName((char*)"STBAR", PU_STATIC);
 
     // face states
     facenum = 0;
@@ -43069,38 +43063,38 @@ void ST_loadGraphics(void)
             doom_strcpy(namebuf, "STFST");
             doom_concat(namebuf, doom_itoa(i, 10));
             doom_concat(namebuf, doom_itoa(j, 10));
-            faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+            faces[facenum++] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
         }
         //doom_sprintf(namebuf, "STFTR%d0", i);        // turn right
         doom_strcpy(namebuf, "STFTR");
         doom_concat(namebuf, doom_itoa(i, 10));
         doom_concat(namebuf, "0");
-        faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+        faces[facenum++] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
         //doom_sprintf(namebuf, "STFTL%d0", i);        // turn left
         doom_strcpy(namebuf, "STFTL");
         doom_concat(namebuf, doom_itoa(i, 10));
         doom_concat(namebuf, "0");
-        faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+        faces[facenum++] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
         //doom_sprintf(namebuf, "STFOUCH%d", i);        // ouch!
         doom_strcpy(namebuf, "STFOUCH");
         doom_concat(namebuf, doom_itoa(i, 10));
-        faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+        faces[facenum++] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
         //doom_sprintf(namebuf, "STFEVL%d", i);        // evil grin ;)
         doom_strcpy(namebuf, "STFEVL");
         doom_concat(namebuf, doom_itoa(i, 10));
-        faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+        faces[facenum++] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
         //doom_sprintf(namebuf, "STFKILL%d", i);        // pissed off
         doom_strcpy(namebuf, "STFKILL");
         doom_concat(namebuf, doom_itoa(i, 10));
-        faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+        faces[facenum++] = (patch_t*)W_CacheLumpName(namebuf, PU_STATIC);
     }
-    faces[facenum++] = W_CacheLumpName("STFGOD0", PU_STATIC);
-    faces[facenum++] = W_CacheLumpName("STFDEAD0", PU_STATIC);
+    faces[facenum++] = (patch_t*)W_CacheLumpName((char*)"STFGOD0", PU_STATIC);
+    faces[facenum++] = (patch_t*)W_CacheLumpName((char*)"STFDEAD0", PU_STATIC);
 }
 
 void ST_loadData(void)
 {
-    lu_palette = W_GetNumForName("PLAYPAL");
+    lu_palette = W_GetNumForName((char*)"PLAYPAL");
     ST_loadGraphics();
 }
 
@@ -43147,16 +43141,16 @@ void ST_initData(void)
 {
     int i;
 
-    st_firsttime = true;
+    st_firsttime = doom_true;
     plyr = &players[consoleplayer];
 
     st_clock = 0;
     st_chatstate = StartChatState;
     st_gamestate = FirstPersonState;
 
-    st_statusbaron = true;
-    st_oldchat = st_chat = false;
-    st_cursoron = false;
+    st_statusbaron = doom_true;
+    st_oldchat = st_chat = doom_false;
+    st_cursoron = doom_false;
 
     st_faceindex = 0;
     st_palette = -1;
@@ -43336,7 +43330,7 @@ void ST_Start(void)
 
     ST_initData();
     ST_createWidgets();
-    st_stopped = false;
+    st_stopped = doom_false;
 }
 
 void ST_Stop(void)
@@ -43344,9 +43338,9 @@ void ST_Stop(void)
     if (st_stopped)
         return;
 
-    I_SetPalette(W_CacheLumpNum(lu_palette, PU_CACHE));
+    I_SetPalette((byte*)W_CacheLumpNum(lu_palette, PU_CACHE));
 
-    st_stopped = true;
+    st_stopped = doom_true;
 }
 
 void ST_Init(void)
@@ -45565,7 +45559,7 @@ void V_CopyRect(int srcx,
         || (unsigned)srcscrn > 4
         || (unsigned)destscrn > 4)
     {
-        I_Error("Error: Bad V_CopyRect");
+        I_Error((char*)"Error: Bad V_CopyRect");
     }
 #endif 
     V_MarkRect(destx, desty, width, height);
@@ -45678,7 +45672,7 @@ void V_DrawPatchFlipped(int x, int y, int scrn, patch_t* patch)
         doom_print(",");
         doom_print(doom_itoa(y, 10));
         doom_print(" exceeds LFB\n");
-        I_Error("Error: Bad V_DrawPatch in V_DrawPatchFlipped");
+        I_Error((char*)"Error: Bad V_DrawPatch in V_DrawPatchFlipped");
     }
 #endif 
 
@@ -45800,7 +45794,7 @@ void V_DrawBlock(int x, int y, int scrn, int width, int height, byte* src)
         || y + height>SCREENHEIGHT
         || (unsigned)scrn > 4)
     {
-        I_Error("Error: Bad V_DrawBlock");
+        I_Error((char*)"Error: Bad V_DrawBlock");
     }
 #endif 
 
@@ -45832,7 +45826,7 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte* dest)
         || y + height>SCREENHEIGHT
         || (unsigned)scrn > 4)
     {
-        I_Error("Error: Bad V_DrawBlock");
+        I_Error((char*)"Error: Bad V_DrawBlock");
     }
 #endif 
 
@@ -45998,12 +45992,13 @@ void W_AddFile(char* filename)
                 I_Error(error_buf);
             }
 
-            // ???modifiedgame = true;                
+            // ???modifiedgame = doom_true;                
         }
         header.numlumps = LONG(header.numlumps);
         header.infotableofs = LONG(header.infotableofs);
         length = header.numlumps * sizeof(filelump_t);
-        fileinfo = allocated = doom_malloc(length);
+        allocated = (filelump_t*)doom_malloc(length);
+        fileinfo = (filelump_t*)allocated;
         doom_seek(handle, header.infotableofs, DOOM_SEEK_SET);
         doom_read(handle, fileinfo, length);
         numlumps += header.numlumps;
@@ -46015,10 +46010,10 @@ void W_AddFile(char* filename)
     void* new_lumpinfo = doom_malloc(numlumps * sizeof(lumpinfo_t));
     doom_memcpy(new_lumpinfo, lumpinfo, previous_realloc_size);
     previous_realloc_size = numlumps * sizeof(lumpinfo_t);
-    lumpinfo = new_lumpinfo;
+    lumpinfo = (lumpinfo_t*)new_lumpinfo;
 
     if (!lumpinfo)
-        I_Error("Error: Couldn't realloc lumpinfo");
+        I_Error((char*)"Error: Couldn't realloc lumpinfo");
 
     lump_p = &lumpinfo[startlump];
 
@@ -46069,7 +46064,7 @@ void W_Reload(void)
     lumpcount = LONG(header.numlumps);
     header.infotableofs = LONG(header.infotableofs);
     length = lumpcount * sizeof(filelump_t);
-    fileinfo = doom_malloc(length);
+    fileinfo = (filelump_t*)doom_malloc(length);
     doom_seek(handle, header.infotableofs, DOOM_SEEK_SET);
     doom_read(handle, fileinfo, length);
 
@@ -46114,20 +46109,20 @@ void W_InitMultipleFiles(char** filenames)
     numlumps = 0;
 
     // will be realloced as lumps are added
-    lumpinfo = doom_malloc(1);
+    lumpinfo = (lumpinfo_t*)doom_malloc(1);
 
     for (; *filenames; filenames++)
         W_AddFile(*filenames);
 
     if (!numlumps)
-        I_Error("Error: W_InitFiles: no files found");
+        I_Error((char*)"Error: W_InitFiles: no files found");
 
     // set up caching
     size = numlumps * sizeof(*lumpcache);
-    lumpcache = doom_malloc(size);
+    lumpcache = (void**)doom_malloc(size);
 
     if (!lumpcache)
-        I_Error("Error: Couldn't allocate lumpcache");
+        I_Error((char*)"Error: Couldn't allocate lumpcache");
 
     doom_memset(lumpcache, 0, size);
 }
@@ -46216,7 +46211,7 @@ int W_GetNumForName(char* name)
     {
         if (doom_strcmp(name, "HELP2") == 0)
         {
-            name = "HELP1"; // Ultimate Doom EXE was modified to use this instead
+            name = (char*)"HELP1"; // Ultimate Doom EXE was modified to use this instead
             i = W_CheckNumForName(name);
         }
         if (i == -1)
@@ -46334,7 +46329,7 @@ void* W_CacheLumpNum(int lump, int tag)
         // read the lump in
 
         //doom_print ("cache miss on lump %i\n",lump);
-        ptr = Z_Malloc(W_LumpLength(lump), tag, &lumpcache[lump]);
+        ptr = (byte*)Z_Malloc(W_LumpLength(lump), tag, &lumpcache[lump]);
         W_ReadLump(lump, lumpcache[lump]);
     }
     else
@@ -46732,7 +46727,7 @@ static patch_t* bp[MAXPLAYERS];
 // Name graphics of each level (centered)
 static patch_t** lnames;
 
-static doom_boolean snl_pointeron = false;
+static doom_boolean snl_pointeron = doom_false;
 static int dm_state;
 static int dm_frags[MAXPLAYERS][MAXPLAYERS];
 static int dm_totals[MAXPLAYERS];
@@ -46757,7 +46752,7 @@ void WI_slamBackground(void)
 //  because of timing issues in netgames.
 doom_boolean WI_Responder(event_t* ev)
 {
-    return false;
+    return doom_false;
 }
 
 
@@ -46802,7 +46797,7 @@ void WI_drawOnLnode(int n, patch_t* c[])
     int                top;
     int                right;
     int                bottom;
-    doom_boolean       fits = false;
+    doom_boolean       fits = doom_false;
 
     i = 0;
     do
@@ -46817,7 +46812,7 @@ void WI_drawOnLnode(int n, patch_t* c[])
             && top >= 0
             && bottom < SCREENHEIGHT)
         {
-            fits = true;
+            fits = doom_true;
         }
         else
         {
@@ -47133,7 +47128,7 @@ void WI_drawShowNextLoc(void)
 
 void WI_drawNoState(void)
 {
-    snl_pointeron = true;
+    snl_pointeron = doom_true;
     WI_drawShowNextLoc();
 }
 
@@ -47224,7 +47219,7 @@ void WI_updateDeathmatchStats(void)
         if (!(bcnt & 3))
             S_StartSound(0, sfx_pistol);
 
-        stillticking = false;
+        stillticking = doom_false;
 
         for (i = 0; i < MAXPLAYERS; i++)
         {
@@ -47246,7 +47241,7 @@ void WI_updateDeathmatchStats(void)
                         if (dm_frags[i][j] < -99)
                             dm_frags[i][j] = -99;
 
-                        stillticking = true;
+                        stillticking = doom_true;
                     }
                 }
                 dm_totals[i] = WI_fragSum(i);
@@ -47442,7 +47437,7 @@ void WI_updateNetgameStats(void)
         if (!(bcnt & 3))
             S_StartSound(0, sfx_pistol);
 
-        stillticking = false;
+        stillticking = doom_false;
 
         for (i = 0; i < MAXPLAYERS; i++)
         {
@@ -47454,7 +47449,7 @@ void WI_updateNetgameStats(void)
             if (cnt_kills[i] >= (plrs[i].skills * 100) / wbs->maxkills)
                 cnt_kills[i] = (plrs[i].skills * 100) / wbs->maxkills;
             else
-                stillticking = true;
+                stillticking = doom_true;
         }
 
         if (!stillticking)
@@ -47468,7 +47463,7 @@ void WI_updateNetgameStats(void)
         if (!(bcnt & 3))
             S_StartSound(0, sfx_pistol);
 
-        stillticking = false;
+        stillticking = doom_false;
 
         for (i = 0; i < MAXPLAYERS; i++)
         {
@@ -47479,7 +47474,7 @@ void WI_updateNetgameStats(void)
             if (cnt_items[i] >= (plrs[i].sitems * 100) / wbs->maxitems)
                 cnt_items[i] = (plrs[i].sitems * 100) / wbs->maxitems;
             else
-                stillticking = true;
+                stillticking = doom_true;
         }
         if (!stillticking)
         {
@@ -47492,7 +47487,7 @@ void WI_updateNetgameStats(void)
         if (!(bcnt & 3))
             S_StartSound(0, sfx_pistol);
 
-        stillticking = false;
+        stillticking = doom_false;
 
         for (i = 0; i < MAXPLAYERS; i++)
         {
@@ -47504,7 +47499,7 @@ void WI_updateNetgameStats(void)
             if (cnt_secret[i] >= (plrs[i].ssecret * 100) / wbs->maxsecret)
                 cnt_secret[i] = (plrs[i].ssecret * 100) / wbs->maxsecret;
             else
-                stillticking = true;
+                stillticking = doom_true;
         }
 
         if (!stillticking)
@@ -47518,7 +47513,7 @@ void WI_updateNetgameStats(void)
         if (!(bcnt & 3))
             S_StartSound(0, sfx_pistol);
 
-        stillticking = false;
+        stillticking = doom_false;
 
         for (i = 0; i < MAXPLAYERS; i++)
         {
@@ -47530,7 +47525,7 @@ void WI_updateNetgameStats(void)
             if (cnt_frags[i] >= (fsum = WI_fragSum(i)))
                 cnt_frags[i] = fsum;
             else
-                stillticking = true;
+                stillticking = doom_true;
         }
 
         if (!stillticking)
@@ -47782,18 +47777,18 @@ void WI_checkForAccelerate(void)
             {
                 if (!player->attackdown)
                     acceleratestage = 1;
-                player->attackdown = true;
+                player->attackdown = doom_true;
             }
             else
-                player->attackdown = false;
+                player->attackdown = doom_false;
             if (player->cmd.buttons & BT_USE)
             {
                 if (!player->usedown)
                     acceleratestage = 1;
-                player->usedown = true;
+                player->usedown = doom_true;
             }
             else
-                player->usedown = false;
+                player->usedown = doom_false;
         }
     }
 }
@@ -47809,9 +47804,9 @@ void WI_Ticker(void)
     {
         // intermission music
         if (gamemode == commercial)
-            S_ChangeMusic(mus_dm2int, true);
+            S_ChangeMusic(mus_dm2int, doom_true);
         else
-            S_ChangeMusic(mus_inter, true);
+            S_ChangeMusic(mus_inter, doom_true);
     }
 
     WI_checkForAccelerate();
@@ -47858,7 +47853,7 @@ void WI_loadData(void)
     }
 
     // background
-    bg = W_CacheLumpName(name, PU_CACHE);
+    bg = (patch_t*)W_CacheLumpName(name, PU_CACHE);
     V_DrawPatch(0, 0, 1, bg);
 
     if (gamemode == commercial)
@@ -47872,7 +47867,7 @@ void WI_loadData(void)
             doom_strcpy(name, "CWILV");
             if (i < 10) doom_concat(name, "0");
             doom_concat(name, doom_itoa(i, 10));
-            lnames[i] = W_CacheLumpName(name, PU_STATIC);
+            lnames[i] = (patch_t*)W_CacheLumpName(name, PU_STATIC);
         }
     }
     else
@@ -47885,17 +47880,17 @@ void WI_loadData(void)
             doom_strcpy(name, "WILV");
             doom_concat(name, doom_itoa(wbs->epsd, 10));
             doom_concat(name, doom_itoa(i, 10));
-            lnames[i] = W_CacheLumpName(name, PU_STATIC);
+            lnames[i] = (patch_t*)W_CacheLumpName(name, PU_STATIC);
         }
 
         // you are here
-        yah[0] = W_CacheLumpName("WIURH0", PU_STATIC);
+        yah[0] = (patch_t*)W_CacheLumpName((char*)"WIURH0", PU_STATIC);
 
         // you are here (alt.)
-        yah[1] = W_CacheLumpName("WIURH1", PU_STATIC);
+        yah[1] = (patch_t*)W_CacheLumpName((char*)"WIURH1", PU_STATIC);
 
         // splat
-        splat = W_CacheLumpName("WISPLAT", PU_STATIC);
+        splat = (patch_t*)W_CacheLumpName((char*)"WISPLAT", PU_STATIC);
 
         if (wbs->epsd < 3)
         {
@@ -47915,7 +47910,7 @@ void WI_loadData(void)
                         doom_concat(name, doom_itoa(j, 10));
                         if (i < 10) doom_concat(name, "0");
                         doom_concat(name, doom_itoa(i, 10));
-                        a->p[i] = W_CacheLumpName(name, PU_STATIC);
+                        a->p[i] = (patch_t*)W_CacheLumpName(name, PU_STATIC);
                     }
                     else
                     {
@@ -47928,7 +47923,7 @@ void WI_loadData(void)
     }
 
     // More hacks on minus sign.
-    wiminus = W_CacheLumpName("WIMINUS", PU_STATIC);
+    wiminus = (patch_t*)W_CacheLumpName((char*)"WIMINUS", PU_STATIC);
 
     for (i = 0; i < 10; i++)
     {
@@ -47936,68 +47931,68 @@ void WI_loadData(void)
         //doom_sprintf(name, "WINUM%d", i);
         doom_strcpy(name, "WINUM");
         doom_concat(name, doom_itoa(i, 10));
-        num[i] = W_CacheLumpName(name, PU_STATIC);
+        num[i] = (patch_t*)W_CacheLumpName(name, PU_STATIC);
     }
 
     // percent sign
-    percent = W_CacheLumpName("WIPCNT", PU_STATIC);
+    percent = (patch_t*)W_CacheLumpName((char*)"WIPCNT", PU_STATIC);
 
     // "finished"
-    finished = W_CacheLumpName("WIF", PU_STATIC);
+    finished = (patch_t*)W_CacheLumpName((char*)"WIF", PU_STATIC);
 
     // "entering"
-    entering = W_CacheLumpName("WIENTER", PU_STATIC);
+    entering = (patch_t*)W_CacheLumpName((char*)"WIENTER", PU_STATIC);
 
     // "kills"
-    kills = W_CacheLumpName("WIOSTK", PU_STATIC);
+    kills = (patch_t*)W_CacheLumpName((char*)"WIOSTK", PU_STATIC);
 
     // "scrt"
-    secret = W_CacheLumpName("WIOSTS", PU_STATIC);
+    secret = (patch_t*)W_CacheLumpName((char*)"WIOSTS", PU_STATIC);
 
     // "secret"
-    sp_secret = W_CacheLumpName("WISCRT2", PU_STATIC);
+    sp_secret = (patch_t*)W_CacheLumpName((char*)"WISCRT2", PU_STATIC);
 
     // Yuck. 
     if (french)
     {
         // "items"
         if (netgame && !deathmatch)
-            items = W_CacheLumpName("WIOBJ", PU_STATIC);
+            items = (patch_t*)W_CacheLumpName((char*)"WIOBJ", PU_STATIC);
         else
-            items = W_CacheLumpName("WIOSTI", PU_STATIC);
+            items = (patch_t*)W_CacheLumpName((char*)"WIOSTI", PU_STATIC);
     }
     else
-        items = W_CacheLumpName("WIOSTI", PU_STATIC);
+        items = (patch_t*)W_CacheLumpName((char*)"WIOSTI", PU_STATIC);
 
     // "frgs"
-    frags = W_CacheLumpName("WIFRGS", PU_STATIC);
+    frags = (patch_t*)W_CacheLumpName((char*)"WIFRGS", PU_STATIC);
 
     // ":"
-    colon = W_CacheLumpName("WICOLON", PU_STATIC);
+    colon = (patch_t*)W_CacheLumpName((char*)"WICOLON", PU_STATIC);
 
     // "time"
-    time_patch = W_CacheLumpName("WITIME", PU_STATIC);
+    time_patch = (patch_t*)W_CacheLumpName((char*)"WITIME", PU_STATIC);
 
     // "sucks"
-    sucks = W_CacheLumpName("WISUCKS", PU_STATIC);
+    sucks = (patch_t*)W_CacheLumpName((char*)"WISUCKS", PU_STATIC);
 
     // "par"
-    par = W_CacheLumpName("WIPAR", PU_STATIC);
+    par = (patch_t*)W_CacheLumpName((char*)"WIPAR", PU_STATIC);
 
     // "killers" (vertical)
-    killers = W_CacheLumpName("WIKILRS", PU_STATIC);
+    killers = (patch_t*)W_CacheLumpName((char*)"WIKILRS", PU_STATIC);
 
     // "victims" (horiz)
-    victims = W_CacheLumpName("WIVCTMS", PU_STATIC);
+    victims = (patch_t*)W_CacheLumpName((char*)"WIVCTMS", PU_STATIC);
 
     // "total"
-    total = W_CacheLumpName("WIMSTT", PU_STATIC);
+    total = (patch_t*)W_CacheLumpName((char*)"WIMSTT", PU_STATIC);
 
     // your face
-    star = W_CacheLumpName("STFST01", PU_STATIC);
+    star = (patch_t*)W_CacheLumpName((char*)"STFST01", PU_STATIC);
 
     // dead face
-    bstar = W_CacheLumpName("STFDEAD0", PU_STATIC);
+    bstar = (patch_t*)W_CacheLumpName((char*)"STFDEAD0", PU_STATIC);
 
     for (i = 0; i < MAXPLAYERS; i++)
     {
@@ -48005,13 +48000,13 @@ void WI_loadData(void)
         //doom_sprintf(name, "STPB%d", i);
         doom_strcpy(name, "STPB");
         doom_concat(name, doom_itoa(i, 10));
-        p[i] = W_CacheLumpName(name, PU_STATIC);
+        p[i] = (patch_t*)W_CacheLumpName(name, PU_STATIC);
 
         // "1,2,3,4"
         //doom_sprintf(name, "WIBP%d", i + 1);
         doom_strcpy(name, "WIBP");
         doom_concat(name, doom_itoa(i + 1, 10));
-        bp[i] = W_CacheLumpName(name, PU_STATIC);
+        bp[i] = (patch_t*)W_CacheLumpName(name, PU_STATIC);
     }
 }
 
@@ -48191,7 +48186,7 @@ void Z_ClearZone(memzone_t* zone)
         zone->blocklist.prev =
         block = (memblock_t*)((byte*)zone + sizeof(memzone_t));
 
-    zone->blocklist.user = (void*)zone;
+    zone->blocklist.user = (void**)zone;
     zone->blocklist.tag = PU_STATIC;
     zone->rover = block;
 
@@ -48220,7 +48215,7 @@ void Z_Init(void)
         mainzone->blocklist.prev =
         block = (memblock_t*)((byte*)mainzone + sizeof(memzone_t));
 
-    mainzone->blocklist.user = (void*)mainzone;
+    mainzone->blocklist.user = (void**)mainzone;
     mainzone->blocklist.tag = PU_STATIC;
     mainzone->rover = block;
 
@@ -48244,7 +48239,7 @@ void Z_Free(void* ptr)
     block = (memblock_t*)((byte*)ptr - sizeof(memblock_t));
 
     if (block->id != ZONEID)
-        I_Error("Error: Z_Free: freed a pointer without ZONEID");
+        I_Error((char*)"Error: Z_Free: freed a pointer without ZONEID");
 
     if (block->user > (void**)0x100)
     {
@@ -48380,16 +48375,16 @@ void* Z_Malloc(int size, int tag, void* user)
     if (user)
     {
         // mark as an in use block
-        base->user = user;
+        base->user = (void**)user;
         *(void**)user = (void*)((byte*)base + sizeof(memblock_t));
     }
     else
     {
         if (tag >= PU_PURGELEVEL)
-            I_Error("Error: Z_Malloc: an owner is required for purgable blocks");
+            I_Error((char*)"Error: Z_Malloc: an owner is required for purgable blocks");
 
         // mark as in use, but unowned        
-        base->user = (void*)2;
+        base->user = (void**)2;
     }
     base->tag = tag;
 
@@ -48548,13 +48543,13 @@ void Z_CheckHeap(void)
         }
 
         if ((byte*)block + block->size != (byte*)block->next)
-            I_Error("Error: Z_CheckHeap: block size does not touch the next block\n");
+            I_Error((char*)"Error: Z_CheckHeap: block size does not touch the next block\n");
 
         if (block->next->prev != block)
-            I_Error("Error: Z_CheckHeap: next block doesn't have proper back link\n");
+            I_Error((char*)"Error: Z_CheckHeap: next block doesn't have proper back link\n");
 
         if (!block->user && !block->next->user)
-            I_Error("Error: Z_CheckHeap: two consecutive free blocks\n");
+            I_Error((char*)"Error: Z_CheckHeap: two consecutive free blocks\n");
     }
 }
 
@@ -48569,10 +48564,10 @@ void Z_ChangeTag2(void* ptr, int tag)
     block = (memblock_t*)((byte*)ptr - sizeof(memblock_t));
 
     if (block->id != ZONEID)
-        I_Error("Error: Z_ChangeTag: freed a pointer without ZONEID");
+        I_Error((char*)"Error: Z_ChangeTag: freed a pointer without ZONEID");
 
     if (tag >= PU_PURGELEVEL && (unsigned long long)block->user < 0x100)
-        I_Error("Error: Z_ChangeTag: an owner is required for purgable blocks");
+        I_Error((char*)"Error: Z_ChangeTag: an owner is required for purgable blocks");
 
     block->tag = tag;
 }
